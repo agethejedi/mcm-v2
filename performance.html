@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>MCM | Performance</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <header>
+      <div class="brand">
+        <div class="logo"></div>
+        <div>
+          <h1>MCM — PERFORMANCE</h1>
+          <div class="sub">Evidence console (Live vs Event Replay)</div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <a class="navlink" href="/">Home</a>
+        <a class="navlink" href="/events.html">Events</a>
+        <a class="navlink active" href="/performance.html">Performance</a>
+        <a class="navlink" href="/live.html">Live Dashboard</a>
+        <a class="navlink" href="/faq.html">FAQ / Playbook</a>
+      </div>
+    </header>
+
+    <main>
+      <div class="perfBar">
+        <div class="modeToggle">
+          <button class="pillbtn active" id="modeLive">Live</button>
+          <button class="pillbtn" id="modeReplay">Event Replay</button>
+        </div>
+
+        <div class="eventSelect hidden" id="eventSelectWrap">
+          <select id="eventSelect"></select>
+          <div class="badgeRow" id="eventBadges"></div>
+        </div>
+
+        <div class="perfLinks">
+          <a class="btn secondary" id="linkOpenEvent" href="/events.html">Open Event</a>
+          <a class="btn secondary" id="linkOpenLive" href="/live.html">Open Live Dashboard</a>
+          <button class="btn secondary" id="copyLink">Copy Link</button>
+        </div>
+      </div>
+
+      <div class="cardWide">
+        <div class="cardWideTitle" id="perfTitle">Live Performance (Today)</div>
+        <div class="cardWideSub" id="perfSub">Loading…</div>
+        <div class="tableWrap">
+          <table class="tbl" id="perfTable">
+            <thead>
+              <tr>
+                <th>Symbol</th>
+                <th>Last</th>
+                <th>$ Chg</th>
+                <th>% Chg</th>
+                <th>High vs Baseline</th>
+                <th>Reversal</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="cardWide hidden" id="replayNote">
+        <div class="cardWideTitle">Replay Mode (coming online)</div>
+        <div class="cardWideSub">This page is event-aware now. Next step is writing daily event performance records into the library and replaying them here.</div>
+      </div>
+    </main>
+
+    <script type="module" src="/src/performance.js"></script>
+  </body>
+</html>

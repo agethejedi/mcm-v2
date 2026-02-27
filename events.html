@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>MCM | Events</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <header>
+      <div class="brand">
+        <div class="logo"></div>
+        <div>
+          <h1>MCM — EVENTS</h1>
+          <div class="sub">Active (LIVE) + archived case studies</div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <a class="navlink" href="/">Home</a>
+        <a class="navlink active" href="/events.html">Events</a>
+        <a class="navlink" href="/performance.html">Performance</a>
+        <a class="navlink" href="/live.html">Live Dashboard</a>
+        <a class="navlink" href="/faq.html">FAQ / Playbook</a>
+      </div>
+    </header>
+
+    <main>
+      <div class="tabs">
+        <button class="tab active" id="tabActive">Active (LIVE)</button>
+        <button class="tab" id="tabLibrary">Library</button>
+      </div>
+
+      <section id="activePane" class="pane">
+        <div class="cardWide">
+          <div class="cardWideTitle">Active Event</div>
+          <div class="cardWideSub" id="activeSummary">Loading…</div>
+          <div class="chipRow" id="activeChips"></div>
+          <div class="btnRow">
+            <a class="btn" id="btnOpenLive" href="/live.html">Open Live Dashboard</a>
+            <a class="btn" id="btnOpenPerf" href="/performance.html">Open Performance</a>
+            <a class="btn secondary" id="btnOpenReplay" href="#">Open Event Replay</a>
+          </div>
+          <div class="sideHint muted">If there is no active event yet, you can still browse the library.</div>
+        </div>
+      </section>
+
+      <section id="libraryPane" class="pane hidden">
+        <div class="cardWide">
+          <div class="cardWideTitle">Event Library</div>
+          <div class="cardWideSub">Past events stored as case studies (replayable).</div>
+
+          <div class="list" id="libraryList"></div>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="/src/events.js"></script>
+  </body>
+</html>

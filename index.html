@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>MCM | Periodic Table of the Dow</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <header>
+      <div class="brand">
+        <div class="logo"></div>
+        <div>
+          <h1>MCM — PERIODIC TABLE OF THE DOW</h1>
+          <div class="sub">Teaching + navigation framework for market behavior (experimental)</div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <a class="navlink active" href="/">Home</a>
+        <a class="navlink" href="/events.html">Events</a>
+        <a class="navlink" href="/performance.html">Performance</a>
+        <a class="navlink" href="/live.html">Live Dashboard</a>
+        <a class="navlink" href="/faq.html">FAQ / Playbook</a>
+      </div>
+    </header>
+
+    <main>
+      <div class="heroRow">
+        <div class="heroLeft">
+          <div class="regime neutral" id="homeRegime">
+            <div class="regime-left">
+              <div class="regime-title" id="homeRegimeTitle">MARKET REGIME: —</div>
+              <div class="regime-sub" id="homeRegimeSub">Loading…</div>
+              <div class="regime-first" id="homeEventLine">Active event: —</div>
+            </div>
+            <div class="regime-right" id="homeRegimeMeta">—</div>
+          </div>
+
+          <div class="metaTop">
+            <div>Universe: <span id="universeLabel">Dow 30</span></div>
+            <div>Data as‑of: <span id="asof">—</span></div>
+            <div class="muted">Tap a tile for a quick company card</div>
+          </div>
+        </div>
+
+        <aside class="sidePanel" id="sidePanel">
+          <div class="sideEmpty" id="sideEmpty">
+            <div class="sideTitle">Company Card</div>
+            <div class="sideHint">Tap a tile to inspect the company, links, and key stats.</div>
+            <div class="sideHint muted">(CEO/CFO + EPS history can be added via a fundamentals provider.)</div>
+          </div>
+
+          <div class="sideCard hidden" id="sideCard">
+            <div class="sideHeader">
+              <div>
+                <div class="sideSym" id="cardSym">—</div>
+                <div class="sideName" id="cardName">—</div>
+                <div class="sideCat" id="cardCat">—</div>
+              </div>
+              <button class="xbtn" id="cardClose" aria-label="Close">×</button>
+            </div>
+
+            <div class="sidePrice">
+              <div class="priceBig" id="cardPrice">—</div>
+              <div class="priceSub" id="cardChg">—</div>
+            </div>
+
+            <div class="sideSection">
+              <div class="sideSectionTitle">What the company does</div>
+              <div class="sideText" id="cardBlurb">—</div>
+            </div>
+
+            <div class="sideSection">
+              <div class="sideSectionTitle">Quick stats (v2)</div>
+              <div class="kv">
+                <div>P/E:</div><div id="cardPE">—</div>
+                <div>Yield:</div><div id="cardYield">—</div>
+                <div>Ex‑date:</div><div id="cardEx">—</div>
+                <div>Pay date:</div><div id="cardPay">—</div>
+              </div>
+              <div class="sideHint muted">Stats are placeholders until a fundamentals feed is connected.</div>
+            </div>
+
+            <div class="sideSection">
+              <div class="sideSectionTitle">Links</div>
+              <div class="linkList" id="cardLinks"></div>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <div class="periodicRow" id="periodicRow">
+        <!-- Cohort columns injected here -->
+      </div>
+
+      <!-- Mobile bottom sheet for the company card -->
+      <div class="sheetOverlay hidden" id="sheetOverlay"></div>
+      <div class="sheet hidden" id="sheet">
+        <div class="sheetGrab"></div>
+        <div class="sheetBody" id="sheetBody"></div>
+      </div>
+
+      <!-- Onboarding (one-time) -->
+      <div class="onboardOverlay hidden" id="onboardOverlay">
+        <div class="onboardCard">
+          <h2>🧭 How to read this screen</h2>
+          <p><strong>Regime:</strong> The banner describes the market environment.</p>
+          <p><strong>Cohorts:</strong> Tiles are grouped by behavior. Watch which cohort turns green first.</p>
+          <p><strong>Setups:</strong> When Event + Regime + Cohort align, we flag teachable patterns — not recommendations.</p>
+
+          <label class="dontShow"><input type="checkbox" id="dontShow" /> Don’t show this again</label>
+          <div class="onboardBtns">
+            <button class="btn" id="onboardOk">Got it</button>
+          </div>
+          <div class="onboardFoot"><a href="#" id="showGuideLater">Show guide later</a></div>
+        </div>
+      </div>
+    </main>
+
+    <script type="module" src="/src/periodic.js"></script>
+  </body>
+</html>
