@@ -1,60 +1,24 @@
 // src/api.js
 
-async function fetchJSON(path, { cache = "no-store", timeoutMs = 15000 } = {}) {
-  const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const r = await fetch(path, { cache, signal: controller.signal });
-    if (!r.ok) throw new Error(`${path} failed: ${r.status}`);
-    return await r.json();
-  } finally {
-    clearTimeout(t);
-  }
-}
-
-/**
- * Snapshot (prices + baseline + highs + reversal flags)
- */
 export async function getSnapshot(symbols) {
   const u = new URL("/api/snapshot", window.location.origin);
   u.searchParams.set("symbols", symbols.join(","));
-  return await fetchJSON(u.toString(), { cache: "no-store" });
+  const r = await fetch(u, { cache: "no-store" });
+  if (!r.ok) throw new Error(`snapshot failed: ${r.status}`);
+  return await r.json();
 }
 
-/**
- * Coach latest
- * Normalizes the response so app.js can rely on:
- * { asof_local, asof_market, session, text: [] }
- */
 export async function getCoachLatest() {
-  try {
-    const j = await fetchJSON("/api/coach/latest", { cache: "no-store" });
-    if (!j) return null;
-
-    // Your backend may return either:
-    //  1) { coach: { ... } }
-    //  2) { ... } directly
-    const c = j.coach || j;
-    if (!c) return null;
-
-    return {
-      asof_local: c.asof_local || null,
-      asof_market: c.asof_market || null,
-      session: c.session || null,
-      text: Array.isArray(c.text) ? c.text : (c.text ? [String(c.text)] : [])
-    };
-  } catch {
-    return null;
-  }
+  const r = await fetch("/api/coach/latest", { cache: "no-store" });
+  if (!r.ok) return null;
+  return await r.json();
 }
 
-/**
- * Events (library)
- */
 export async function getActiveEvent() {
   try {
-    return await fetchJSON("/api/events/active", { cache: "no-store" });
+    const r = await fetch(`/api/events/active`, { cache: "no-store" });
+    if (!r.ok) return null;
+    return await r.json();
   } catch {
     return null;
   }
@@ -62,7 +26,9 @@ export async function getActiveEvent() {
 
 export async function getEventsIndex() {
   try {
-    const j = await fetchJSON("/api/events/index", { cache: "no-store" });
+    const r = await fetch(`/api/events/index`, { cache: "no-store" });
+    if (!r.ok) return [];
+    const j = await r.json();
     return Array.isArray(j) ? j : (j?.events || []);
   } catch {
     return [];
@@ -70,27 +36,31 @@ export async function getEventsIndex() {
 }
 
 /**
- * Fundamentals: Dividends
- * Requires backend endpoint:
- *   GET /api/fundamentals/dividends?symbol=MSFT
+ * Fundamentals (optional)
+ * Expected endpoints:
+ *  - /api/fundamentals/dividends?symbol=MSFT
+ *  - /api/fundamentals/earnings?symbol=MSFT
  */
 export async function getDividends(symbol) {
-  const sym = String(symbol || "").trim().toUpperCase();
-  if (!sym) throw new Error("Missing symbol");
-  const u = new URL("/api/fundamentals/dividends", window.location.origin);
-  u.searchParams.set("symbol", sym);
-  return await fetchJSON(u.toString(), { cache: "no-store" });
+  try {
+    const u = new URL("/api/fundamentals/dividends", window.location.origin);
+    u.searchParams.set("symbol", String(symbol || "").toUpperCase());
+    const r = await fetch(u, { cache: "no-store" });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch {
+    return null;
+  }
 }
 
-/**
- * Fundamentals: Earnings / EPS (last 4 quarters)
- * Requires backend endpoint:
- *   GET /api/fundamentals/earnings?symbol=MSFT
- */
 export async function getEarnings(symbol) {
-  const sym = String(symbol || "").trim().toUpperCase();
-  if (!sym) throw new Error("Missing symbol");
-  const u = new URL("/api/fundamentals/earnings", window.location.origin);
-  u.searchParams.set("symbol", sym);
-  return await fetchJSON(u.toString(), { cache: "no-store" });
+  try {
+    const u = new URL("/api/fundamentals/earnings", window.location.origin);
+    u.searchParams.set("symbol", String(symbol || "").toUpperCase());
+    const r = await fetch(u, { cache: "no-store" });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch {
+    return null;
+  }
 }
