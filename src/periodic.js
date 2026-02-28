@@ -23,6 +23,51 @@ function isMobile() {
   return window.matchMedia("(max-width: 900px)").matches;
 }
 
+/* -------------------------
+   Off-canvas panel controls
+   ------------------------- */
+
+const sidePanel = $("#sidePanel");
+const overlay = $("#panelOverlay");
+const closeBtn = $("#cardClose");
+
+function openPanel() {
+  if (!sidePanel) return;
+  sidePanel.classList.add("open");
+  overlay?.classList.add("show");
+}
+
+function closePanel() {
+  if (!sidePanel) return;
+  sidePanel.classList.remove("open");
+  overlay?.classList.remove("show");
+}
+
+function wirePanelClose() {
+  // overlay click closes (desktop)
+  overlay?.addEventListener("click", closePanel);
+
+  // top-right X closes
+  closeBtn?.addEventListener("click", () => {
+    closePanel();
+    hideSideCard();
+    closeSheet();
+  });
+
+  // ESC closes
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closePanel();
+      hideSideCard();
+      closeSheet();
+    }
+  });
+}
+
+/* -------------------------
+   Cohorts + tiles
+   ------------------------- */
+
 function cohortLabel(key) {
   const map = {
     liquidity_leader: "Liquidity Leaders",
@@ -56,6 +101,7 @@ function buildDefaultLinks(symbol, name) {
 }
 
 function renderLinks(el, links) {
+  if (!el) return;
   el.innerHTML = "";
   for (const l of links) {
     const a = document.createElement("a");
@@ -69,7 +115,6 @@ function renderLinks(el, links) {
 }
 
 function tileTemplate(s) {
-  // Right side “price” slot is where your UI is showing $0 currently
   return `
     <button class="pTile" data-symbol="${s.symbol}" aria-label="${s.symbol} tile">
       <div class="pTop">
@@ -86,7 +131,6 @@ function tileTemplate(s) {
 function renderCohorts(container, symbols) {
   const grouped = groupByCohort(symbols);
 
-  // Stable ordering (only shows cohorts that exist)
   const order = [
     "liquidity_leader",
     "reflex_bounce",
@@ -118,11 +162,19 @@ function renderCohorts(container, symbols) {
   container.innerHTML = cols.join("");
 }
 
+/* -------------------------
+   Regime banner (minimal)
+   ------------------------- */
+
 function setRegimeBanner({ title, sub, meta }) {
   $("#homeRegimeTitle").textContent = title || "MARKET REGIME: —";
   $("#homeRegimeSub").textContent = sub || "—";
   $("#homeRegimeMeta").textContent = meta || "—";
 }
+
+/* -------------------------
+   Side card + mobile sheet
+   ------------------------- */
 
 function showSideCard() {
   $("#sideEmpty")?.classList.add("hidden");
@@ -146,7 +198,6 @@ function closeSheet() {
 }
 
 function cardHtmlFromDom() {
-  // For mobile sheet: clone the content from the side card area
   const sym = safeText($("#cardSym")?.textContent);
   const name = safeText($("#cardName")?.textContent);
   const cat = safeText($("#cardCat")?.textContent);
@@ -158,7 +209,6 @@ function cardHtmlFromDom() {
   const ex = safeText($("#cardEx")?.textContent);
   const pay = safeText($("#cardPay")?.textContent);
 
-  // Links: rebuild from visible list
   const links = Array.from($("#cardLinks")?.querySelectorAll("a") || []).map(a => ({
     label: a.textContent,
     href: a.href
@@ -211,7 +261,14 @@ async function populateCompanyCard(symbolsBySym, snap, sym) {
 
   const d = snap?.[sym] || {};
   const last = Number(d.last);
-  const prev = Number(d?._meta?.previous_close ?? d?.meta?.previous_close ?? d?.previous_close);
+
+  // NOTE: v2 snapshot may not include prev close; try a few common keys
+  const prev = Number(
+    d?.meta?.previous_close ??
+    d?.previous_close ??
+    snap?._meta?.previous_close ??
+    NaN
+  );
 
   // Header
   $("#cardSym").textContent = s.symbol;
@@ -236,46 +293,53 @@ async function populateCompanyCard(symbolsBySym, snap, sym) {
   const links = Array.isArray(s.links) && s.links.length
     ? s.links
     : buildDefaultLinks(s.symbol, s.name);
-
   renderLinks($("#cardLinks"), links);
 
-  // Reset stats (then fill from dividends/earnings)
+  // Reset stats
   $("#cardPE").textContent = "—";
   $("#cardYield").textContent = "—";
   $("#cardEx").textContent = "—";
   $("#cardPay").textContent = "—";
 
-  // Try fundamentals
-  const div = await getDividends(sym);
-  if (div?.dividends?.length) {
-    const latest = div.dividends[0];
-    const amt = Number(latest.amount);
-    const ex = latest.ex_date || latest.exDate || null;
-    const pay = latest.pay_date || latest.payDate || null;
+  // Dividends
+  try {
+    const div = await getDividends(sym);
+    if (div?.dividends?.length) {
+      const latest = div.dividends[0];
+      const amt = Number(latest.amount);
+      const ex = latest.ex_date || latest.exDate || null;
+      const pay = latest.pay_date || latest.payDate || null;
 
-    $("#cardEx").textContent = ex || "—";
-    $("#cardPay").textContent = pay || "—";
+      $("#cardEx").textContent = ex || "—";
+      $("#cardPay").textContent = pay || "—";
 
-    // Rough annualized yield estimate if we have price and amount
-    if (Number.isFinite(last) && Number.isFinite(amt) && last > 0) {
-      const annual = amt * 4; // naive quarterly assumption
-      const y = annual / last;
-      $("#cardYield").textContent = fmtPct(y);
-    } else if (Number.isFinite(amt)) {
-      $("#cardYield").textContent = `$${fmtMoney(amt)} (per period)`;
+      if (Number.isFinite(last) && Number.isFinite(amt) && last > 0) {
+        const annual = amt * 4; // naive quarterly assumption
+        $("#cardYield").textContent = fmtPct(annual / last);
+      } else if (Number.isFinite(amt)) {
+        $("#cardYield").textContent = `$${fmtMoney(amt)} (per period)`;
+      }
     }
+  } catch {
+    // ignore
   }
 
   // Earnings (optional)
-  const ern = await getEarnings(sym);
-  // If you later include eps_ttm or pe in the earnings payload, you can populate P/E here.
-  // For now, just leave it as placeholder unless provided.
-  const peFromApi = Number(ern?.pe ?? ern?.fundamentals?.pe);
-  if (Number.isFinite(peFromApi)) $("#cardPE").textContent = peFromApi.toFixed(2);
+  try {
+    const ern = await getEarnings(sym);
+    const peFromApi = Number(ern?.pe ?? ern?.fundamentals?.pe);
+    if (Number.isFinite(peFromApi)) $("#cardPE").textContent = peFromApi.toFixed(2);
+  } catch {
+    // ignore
+  }
 
+  // Show contents
   showSideCard();
 
-  // Mobile sheet mode
+  // Desktop: open off-canvas panel
+  if (!isMobile()) openPanel();
+
+  // Mobile: open sheet (still preferred UX)
   if (isMobile()) {
     openSheet(cardHtmlFromDom());
     const btn = $("#sheetClose");
@@ -288,7 +352,12 @@ async function refreshTiles(symbols, snap) {
     const d = snap?.[s.symbol] || {};
     const last = Number(d.last);
 
-    const prev = Number(d?.meta?.previous_close ?? d?.previous_close);
+    const prev = Number(
+      d?.meta?.previous_close ??
+      d?.previous_close ??
+      NaN
+    );
+
     const priceEl = $(`#pPrice-${s.symbol}`);
     const chgEl = $(`#pChg-${s.symbol}`);
 
@@ -310,16 +379,11 @@ async function refreshTiles(symbols, snap) {
   }
 }
 
-function wireCardClose() {
-  $("#cardClose")?.addEventListener("click", () => {
-    hideSideCard();
-    closeSheet();
-  });
-  $("#sheetOverlay")?.addEventListener("click", closeSheet);
-}
+/* -------------------------
+   Boot
+   ------------------------- */
 
 async function boot() {
-  // Load symbols from config.js dynamically so we don’t explode if the export name differs
   const cfg = await import("./config.js");
   const SYMBOLS =
     cfg.DOW30 ||
@@ -327,7 +391,6 @@ async function boot() {
     cfg.symbols ||
     [];
 
-  // You can optionally add UI_REFRESH_MS to config.js; fallback 60s
   const UI_REFRESH_MS = Number(cfg.UI_REFRESH_MS) || 60_000;
 
   const symbols = SYMBOLS.map(s => ({
@@ -341,9 +404,11 @@ async function boot() {
 
   const symbolsBySym = Object.fromEntries(symbols.map(s => [s.symbol, s]));
 
-  // Render columns + tiles
   renderCohorts($("#periodicRow"), symbols);
-  wireCardClose();
+
+  // Close wiring
+  wirePanelClose();
+  $("#sheetOverlay")?.addEventListener("click", closeSheet);
 
   // Active event line
   try {
@@ -353,7 +418,6 @@ async function boot() {
     $("#homeEventLine").textContent = "Active event: —";
   }
 
-  // Snapshot + regime meta
   async function refresh() {
     let snap = null;
     try {
@@ -369,7 +433,6 @@ async function boot() {
 
     $("#asof").textContent = snap?._meta?.asof_local || snap?._meta?.asof_market || "—";
 
-    // Minimal regime banner for v2 home
     setRegimeBanner({
       title: "MARKET REGIME: —",
       sub: snap?._meta?.note || "Backend enforces credits-aware cadence via KV caching.",
@@ -378,12 +441,18 @@ async function boot() {
 
     await refreshTiles(symbols, snap);
 
-    // Wire tile clicks AFTER refresh (ensures DOM exists)
+    // Wire tile clicks (once)
     document.querySelectorAll(".pTile").forEach((btn) => {
       if (btn.dataset.wired === "1") return;
       btn.dataset.wired = "1";
+
       btn.addEventListener("click", async () => {
         const sym = btn.getAttribute("data-symbol");
+
+        // visual selection highlight (optional)
+        document.querySelectorAll(".pTile.selected").forEach(x => x.classList.remove("selected"));
+        btn.classList.add("selected");
+
         await populateCompanyCard(symbolsBySym, snap, sym);
       });
     });
