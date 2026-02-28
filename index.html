@@ -6,180 +6,144 @@
     <title>MCM | Periodic Table of the Dow</title>
     <link rel="stylesheet" href="/src/styles.css" />
   </head>
+
   <body>
-    <header>
-      <div class="brand">
-        <div class="logo"></div>
-        <div>
-          <h1>MCM — PERIODIC TABLE OF THE DOW</h1>
-          <div class="sub">Teaching + navigation framework for market behavior (experimental)</div>
-        </div>
-      </div>
-
-      <div class="actions">
-        <a class="navlink active" href="/">Home</a>
-        <a class="navlink" href="/events.html">Events</a>
-        <a class="navlink" href="/performance.html">Performance</a>
-        <a class="navlink" href="/live.html">Live Dashboard</a>
-        <a class="navlink" href="/faq.html">FAQ / Playbook</a>
-      </div>
-    </header>
-
-    <main>
-      <div class="heroRow">
-        <div class="heroLeft">
-          <div class="regime neutral" id="homeRegime">
-            <div class="regime-left">
-              <div class="regime-title" id="homeRegimeTitle">MARKET REGIME: —</div>
-              <div class="regime-sub" id="homeRegimeSub">Loading…</div>
-              <div class="regime-first" id="homeEventLine">Active event: —</div>
-            </div>
-            <div class="regime-right" id="homeRegimeMeta">—</div>
-          </div>
-
-          <div class="metaTop">
-            <div>Universe: <span id="universeLabel">Dow 30</span></div>
-            <div>Data as‑of: <span id="asof">—</span></div>
-            <div class="muted">Tap a tile for a quick company card</div>
-          </div>
+    <!-- Step A: Shell + Left Rail (desktop) -->
+    <div class="shell">
+      <aside class="rail" aria-label="RiskXLabs rail">
+        <div class="railTop">
+          <div class="burger" aria-label="Menu">☰</div>
+          <div class="railBrand">RiskXLabs</div>
         </div>
 
-        <aside class="sidePanel" id="sidePanel">
-          <div class="sideEmpty" id="sideEmpty">
-            <div class="sideTitle">Company Card</div>
-            <div class="sideHint">Tap a tile to inspect the company, links, and key stats.</div>
-            <div class="sideHint muted">(CEO/CFO + EPS history can be added via a fundamentals provider.)</div>
-          </div>
+        <nav class="railNav" aria-label="Primary">
+          <button class="railBtn active" type="button" title="Periodic Table">▦</button>
+          <button class="railBtn" type="button" title="Live">⚡</button>
+          <button class="railBtn" type="button" title="Stats">▤</button>
+        </nav>
+      </aside>
 
-          <div class="sideCard hidden" id="sideCard">
-            <div class="sideHeader">
-              <div>
-                <div class="sideSym" id="cardSym">—</div>
-                <div class="sideName" id="cardName">—</div>
-                <div class="sideCat" id="cardCat">—</div>
+      <div class="app">
+        <header>
+          <div class="brand">
+            <div class="logo"></div>
+            <div>
+              <h1>MCM — PERIODIC TABLE OF THE DOW</h1>
+              <div class="sub">Teaching + navigation framework for market behavior (experimental)</div>
+
+              <!-- Step A: Legend chips (matches the mock) -->
+              <div class="legendRow" aria-label="Legend">
+                <span class="legendChip forming"><span class="dot"></span> SETUP FORMING</span>
+                <span class="legendChip confirmed"><span class="dot"></span> CONFIRMED SETUP</span>
               </div>
-              <button class="xbtn" id="cardClose" aria-label="Close">×</button>
             </div>
+          </div>
 
-            <div class="sidePrice">
-              <div class="priceBig" id="cardPrice">—</div>
-              <div class="priceSub" id="cardChg">—</div>
-            </div>
+          <div class="actions">
+            <a class="navlink active" href="/">Home</a>
+            <a class="navlink" href="/events.html">Events</a>
+            <a class="navlink" href="/performance.html">Performance</a>
+            <a class="navlink" href="/live.html">Live Dashboard</a>
+            <a class="navlink" href="/faq.html">FAQ / Playbook</a>
+          </div>
+        </header>
 
-            <div class="sideSection">
-              <div class="sideSectionTitle">What the company does</div>
-              <div class="sideText" id="cardBlurb">—</div>
-            </div>
-
-            <div class="sideSection">
-              <div class="sideSectionTitle">Quick stats (v2)</div>
-              <div class="kv">
-                <div>P/E:</div><div id="cardPE">—</div>
-                <div>Yield:</div><div id="cardYield">—</div>
-                <div>Ex‑date:</div><div id="cardEx">—</div>
-                <div>Pay date:</div><div id="cardPay">—</div>
+        <main>
+          <div class="heroRow">
+            <div class="heroLeft">
+              <div class="regime neutral" id="homeRegime">
+                <div class="regime-left">
+                  <div class="regime-title" id="homeRegimeTitle">MARKET REGIME: —</div>
+                  <div class="regime-sub" id="homeRegimeSub">Loading…</div>
+                  <div class="regime-first" id="homeEventLine">Active event: —</div>
+                </div>
+                <div class="regime-right" id="homeRegimeMeta">—</div>
               </div>
-              <div class="sideHint muted">Stats are placeholders until a fundamentals feed is connected.</div>
+
+              <div class="metaTop">
+                <div>Universe: <span id="universeLabel">Dow 30</span></div>
+                <div>Data as-of: <span id="asof">—</span></div>
+                <div class="muted">Tap a tile for a quick company card</div>
+              </div>
             </div>
 
-            <div class="sideSection">
-              <div class="sideSectionTitle">Links</div>
-              <div class="linkList" id="cardLinks"></div>
+            <!-- Side panel stays in DOM (desktop); periodic.js controls visibility/off-canvas -->
+            <aside class="sidePanel" id="sidePanel">
+              <div class="sideEmpty" id="sideEmpty">
+                <div class="sideTitle">Company Card</div>
+                <div class="sideHint">Tap a tile to inspect the company, links, and key stats.</div>
+                <div class="sideHint muted">(CEO/CFO + EPS history can be added via a fundamentals provider.)</div>
+              </div>
+
+              <div class="sideCard hidden" id="sideCard">
+                <div class="sideHeader">
+                  <div>
+                    <div class="sideSym" id="cardSym">—</div>
+                    <div class="sideName" id="cardName">—</div>
+                    <div class="sideCat" id="cardCat">—</div>
+                  </div>
+                  <button class="xbtn" id="cardClose" aria-label="Close">×</button>
+                </div>
+
+                <div class="sidePrice">
+                  <div class="priceBig" id="cardPrice">—</div>
+                  <div class="priceSub" id="cardChg">—</div>
+                </div>
+
+                <div class="sideSection">
+                  <div class="sideSectionTitle">What the company does</div>
+                  <div class="sideText" id="cardBlurb">—</div>
+                </div>
+
+                <div class="sideSection">
+                  <div class="sideSectionTitle">Quick stats (v2)</div>
+                  <div class="kv">
+                    <div>P/E:</div><div id="cardPE">—</div>
+                    <div>Yield:</div><div id="cardYield">—</div>
+                    <div>Ex-date:</div><div id="cardEx">—</div>
+                    <div>Pay date:</div><div id="cardPay">—</div>
+                  </div>
+                  <div class="sideHint muted">Stats are placeholders until a fundamentals feed is connected.</div>
+                </div>
+
+                <div class="sideSection">
+                  <div class="sideSectionTitle">Links</div>
+                  <div class="linkList" id="cardLinks"></div>
+                </div>
+              </div>
+            </aside>
+          </div>
+
+          <div class="periodicRow" id="periodicRow">
+            <!-- Cohort columns injected here -->
+          </div>
+
+          <!-- Mobile bottom sheet for the company card -->
+          <div class="sheetOverlay hidden" id="sheetOverlay"></div>
+          <div class="sheet hidden" id="sheet">
+            <div class="sheetGrab"></div>
+            <div class="sheetBody" id="sheetBody"></div>
+          </div>
+
+          <!-- Onboarding (one-time) -->
+          <div class="onboardOverlay hidden" id="onboardOverlay">
+            <div class="onboardCard">
+              <h2>🧭 How to read this screen</h2>
+              <p><strong>Regime:</strong> The banner describes the market environment.</p>
+              <p><strong>Cohorts:</strong> Tiles are grouped by behavior. Watch which cohort turns green first.</p>
+              <p><strong>Setups:</strong> When Event + Regime + Cohort align, we flag teachable patterns — not recommendations.</p>
+
+              <label class="dontShow"><input type="checkbox" id="dontShow" /> Don’t show this again</label>
+              <div class="onboardBtns">
+                <button class="btn" id="onboardOk">Got it</button>
+              </div>
+              <div class="onboardFoot"><a href="#" id="showGuideLater">Show guide later</a></div>
             </div>
           </div>
-        </aside>
+        </main>
+
+        <script type="module" src="/src/periodic.js"></script>
       </div>
-
-      <div class="periodicRow" id="periodicRow">
-        <!-- Cohort columns injected here -->
-      </div>
-
-      <!-- Mobile bottom sheet for the company card -->
-      <div class="sheetOverlay hidden" id="sheetOverlay"></div>
-      <div class="sheet hidden" id="sheet">
-        <div class="sheetGrab"></div>
-        <div class="sheetBody" id="sheetBody"></div>
-      </div>
-
-      <!-- Onboarding (one-time) -->
-      <div class="onboardOverlay hidden" id="onboardOverlay">
-        <div class="onboardCard">
-          <h2>🧭 How to read this screen</h2>
-          <p><strong>Regime:</strong> The banner describes the market environment.</p>
-          <p><strong>Cohorts:</strong> Tiles are grouped by behavior. Watch which cohort turns green first.</p>
-          <p><strong>Setups:</strong> When Event + Regime + Cohort align, we flag teachable patterns — not recommendations.</p>
-
-          <label class="dontShow"><input type="checkbox" id="dontShow" /> Don’t show this again</label>
-          <div class="onboardBtns">
-            <button class="btn" id="onboardOk">Got it</button>
-          </div>
-          <div class="onboardFoot"><a href="#" id="showGuideLater">Show guide later</a></div>
-        </div>
-      </div>
-      /* =========================================
-   OFF CANVAS COMPANY PANEL
-   ========================================= */
-
-.sidePanel{
-  position: fixed;
-  top: 0;
-  right: 0;
-  width: 420px;
-  height: 100vh;
-  padding: 18px 16px 22px;
-  border-left: 1px solid rgba(72,255,238,.18);
-  border-radius: 0;
-  background: linear-gradient(
-      180deg,
-      rgba(6,16,28,.96),
-      rgba(4,12,20,.98)
-  );
-  backdrop-filter: blur(14px);
-  box-shadow:
-      -18px 0 50px rgba(0,0,0,.55),
-      -4px 0 14px rgba(72,255,238,.08);
-  z-index: 2000;
-
-  /* hidden by default */
-  transform: translateX(110%);
-  transition: transform 280ms cubic-bezier(.2,.8,.2,1);
-}
-
-/* when open */
-.sidePanel.open{
-  transform: translateX(0%);
-}
-
-/* overlay behind panel */
-.panelOverlay{
-  position: fixed;
-  inset: 0;
-  background: rgba(4,10,18,.65);
-  backdrop-filter: blur(6px);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 240ms ease;
-  z-index: 1999;
-}
-
-.panelOverlay.show{
-  opacity: 1;
-  pointer-events: auto;
-}
-
-/* mobile */
-@media (max-width: 980px){
-  .sidePanel{
-    width: 100%;
-    border-left: none;
-    border-top: 1px solid rgba(72,255,238,.18);
-    transform: translateY(100%);
-  }
-  .sidePanel.open{
-    transform: translateY(0);
-  }
-}    </main>
-
-    <script type="module" src="/src/periodic.js"></script>
+    </div>
   </body>
 </html>
