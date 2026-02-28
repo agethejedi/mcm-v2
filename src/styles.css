@@ -569,3 +569,46 @@ main{
     transform: translateY(0);
   }
 }
+/* ===== Periodic Table: single-row strip (desktop) ===== */
+.periodicRow{
+  display: grid;
+  grid-auto-flow: column;          /* <-- key: keep it one row */
+  grid-auto-columns: minmax(200px, 1fr);
+  gap: 16px;
+  align-items: start;
+  margin-top: 18px;
+
+  overflow-x: auto;                /* <-- scroll instead of wrapping */
+  overflow-y: hidden;
+  padding-bottom: 10px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* each cohort column snaps nicely */
+.pCol{
+  scroll-snap-align: start;
+}
+
+/* make the scrollbar subtle */
+.periodicRow::-webkit-scrollbar { height: 10px; }
+.periodicRow::-webkit-scrollbar-thumb {
+  background: rgba(72,255,238,0.18);
+  border-radius: 999px;
+}
+.periodicRow::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.03);
+  border-radius: 999px;
+}
+
+/* mobile stays stacked */
+@media (max-width: 980px){
+  .periodicRow{
+    display: grid;
+    grid-auto-flow: row;
+    grid-template-columns: 1fr;
+    overflow: visible;
+    padding-bottom: 0;
+    scroll-snap-type: none;
+  }
+}
