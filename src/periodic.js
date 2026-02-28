@@ -23,51 +23,6 @@ function isMobile() {
   return window.matchMedia("(max-width: 900px)").matches;
 }
 
-/* -------------------------
-   Off-canvas panel controls
-   ------------------------- */
-
-const sidePanel = $("#sidePanel");
-const overlay = $("#panelOverlay");
-const closeBtn = $("#cardClose");
-
-function openPanel() {
-  if (!sidePanel) return;
-  sidePanel.classList.add("open");
-  overlay?.classList.add("show");
-}
-
-function closePanel() {
-  if (!sidePanel) return;
-  sidePanel.classList.remove("open");
-  overlay?.classList.remove("show");
-}
-
-function wirePanelClose() {
-  // overlay click closes (desktop)
-  overlay?.addEventListener("click", closePanel);
-
-  // top-right X closes
-  closeBtn?.addEventListener("click", () => {
-    closePanel();
-    hideSideCard();
-    closeSheet();
-  });
-
-  // ESC closes
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") {
-      closePanel();
-      hideSideCard();
-      closeSheet();
-    }
-  });
-}
-
-/* -------------------------
-   Cohorts + tiles
-   ------------------------- */
-
 function cohortLabel(key) {
   const map = {
     liquidity_leader: "Liquidity Leaders",
@@ -76,6 +31,8 @@ function cohortLabel(key) {
     cyclicals_industrials: "Cyclicals / Industrials",
     defensive_yield: "Defensive / Yield",
     ai_exposure: "AI Exposure",
+
+    // support your config.js cohort keys too
     cyclical: "Cyclicals / Industrials",
     defensive: "Defensive / Yield",
   };
@@ -103,7 +60,6 @@ function buildDefaultLinks(symbol, name) {
 }
 
 function renderLinks(el, links) {
-  if (!el) return;
   el.innerHTML = "";
   for (const l of links) {
     const a = document.createElement("a");
@@ -116,6 +72,9 @@ function renderLinks(el, links) {
   }
 }
 
+/**
+ * Step C: add a status chip slot to each tile (Setup / Confirmed)
+ */
 function tileTemplate(s) {
   return `
     <button class="pTile" data-symbol="${s.symbol}" aria-label="${s.symbol} tile">
@@ -123,9 +82,14 @@ function tileTemplate(s) {
         <div class="pSym">${s.symbol}</div>
         <div class="pPrice" id="pPrice-${s.symbol}">$—</div>
       </div>
+
       <div class="pName">${safeText(s.name || s.company || "")}</div>
       <div class="pSub">${safeText(s.category || s.sector || "")}</div>
-      <div class="pChg" id="pChg-${s.symbol}">—</div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:10px;">
+        <div class="pChg" id="pChg-${s.symbol}">—</div>
+        <span class="statusChip forming" id="pStatus-${s.symbol}">Setup</span>
+      </div>
     </button>
   `;
 }
@@ -138,11 +102,11 @@ function renderCohorts(container, symbols) {
     "reflex_bounce",
     "macro_sensitive",
     "cyclicals_industrials",
+    "cyclical",
     "defensive_yield",
+    "defensive",
     "ai_exposure",
     "other",
-    "cyclical",
-    "defensive",
   ];
 
   const cols = [];
@@ -166,36 +130,28 @@ function renderCohorts(container, symbols) {
   container.innerHTML = cols.join("");
 }
 
-/* -------------------------
-   Regime banner (minimal)
-   ------------------------- */
-
 function setRegimeBanner({ title, sub, meta }) {
   $("#homeRegimeTitle").textContent = title || "MARKET REGIME: —";
   $("#homeRegimeSub").textContent = sub || "—";
   $("#homeRegimeMeta").textContent = meta || "—";
 }
 
-/* -------------------------
-   Side card + mobile sheet
-   ------------------------- */
-
+/* Side card show/hide helpers (your off-canvas CSS handles animation) */
 function showSideCard() {
   $("#sideEmpty")?.classList.add("hidden");
   $("#sideCard")?.classList.remove("hidden");
 }
-
 function hideSideCard() {
   $("#sideCard")?.classList.add("hidden");
   $("#sideEmpty")?.classList.remove("hidden");
 }
 
+/* Mobile sheet */
 function openSheet(html) {
   $("#sheetBody").innerHTML = html;
   $("#sheetOverlay").classList.remove("hidden");
   $("#sheet").classList.remove("hidden");
 }
-
 function closeSheet() {
   $("#sheetOverlay").classList.add("hidden");
   $("#sheet").classList.add("hidden");
@@ -266,21 +222,19 @@ async function populateCompanyCard(symbolsBySym, snap, sym) {
   const d = snap?.[sym] || {};
   const last = Number(d.last);
 
-  // NOTE: v2 snapshot may not include prev close; try a few common keys
-  const prev = Number(
-    d?.meta?.previous_close ??
-    d?.previous_close ??
-    snap?._meta?.previous_close ??
-    NaN
-  );
+  // try multiple “prev close” locations (depends on your worker payload)
+  const prev =
+    Number(d?.previous_close) ||
+    Number(d?.meta?.previous_close) ||
+    Number(snap?._meta?.previous_close) ||
+    NaN;
 
-  // Header
   $("#cardSym").textContent = s.symbol;
   $("#cardName").textContent = s.name || s.company || "—";
   $("#cardCat").textContent = s.category || s.sector || "—";
 
-  // Price + change
   $("#cardPrice").textContent = Number.isFinite(last) ? `$${fmtMoney(last)}` : "—";
+
   let chgText = "—";
   if (Number.isFinite(last) && Number.isFinite(prev) && prev !== 0) {
     const chg = last - prev;
@@ -290,16 +244,15 @@ async function populateCompanyCard(symbolsBySym, snap, sym) {
   }
   $("#cardChg").textContent = chgText;
 
-  // Blurb
   $("#cardBlurb").textContent = s.blurb || s.description || "—";
 
-  // Links
   const links = Array.isArray(s.links) && s.links.length
     ? s.links
     : buildDefaultLinks(s.symbol, s.name);
+
   renderLinks($("#cardLinks"), links);
 
-  // Reset stats
+  // Reset stats (then fill)
   $("#cardPE").textContent = "—";
   $("#cardYield").textContent = "—";
   $("#cardEx").textContent = "—";
@@ -325,25 +278,21 @@ async function populateCompanyCard(symbolsBySym, snap, sym) {
       }
     }
   } catch {
-    // ignore
+    // leave placeholders
   }
 
-  // Earnings (optional)
+  // Earnings (optional: if your endpoint returns pe, fill it)
   try {
     const ern = await getEarnings(sym);
     const peFromApi = Number(ern?.pe ?? ern?.fundamentals?.pe);
     if (Number.isFinite(peFromApi)) $("#cardPE").textContent = peFromApi.toFixed(2);
   } catch {
-    // ignore
+    // leave placeholders
   }
 
-  // Show contents
   showSideCard();
 
-  // Desktop: open off-canvas panel
-  if (!isMobile()) openPanel();
-
-  // Mobile: open sheet (still preferred UX)
+  // Mobile sheet
   if (isMobile()) {
     openSheet(cardHtmlFromDom());
     const btn = $("#sheetClose");
@@ -351,22 +300,29 @@ async function populateCompanyCard(symbolsBySym, snap, sym) {
   }
 }
 
+/**
+ * Step C: set each tile’s status chip (Setup vs Confirmed)
+ * Uses snapshot reversal confirmation when present:
+ *   d.rth.reversal.confirmed  (preferred)
+ * Falls back to ETH confirmation if you ever enable it.
+ */
 async function refreshTiles(symbols, snap) {
   for (const s of symbols) {
     const d = snap?.[s.symbol] || {};
     const last = Number(d.last);
 
-    const prev = Number(
-      d?.meta?.previous_close ??
-      d?.previous_close ??
-      NaN
-    );
+    const prev =
+      Number(d?.previous_close) ||
+      Number(d?.meta?.previous_close) ||
+      NaN;
 
     const priceEl = $(`#pPrice-${s.symbol}`);
     const chgEl = $(`#pChg-${s.symbol}`);
+    const statusEl = $(`#pStatus-${s.symbol}`);
 
     if (priceEl) priceEl.textContent = Number.isFinite(last) ? `$${fmtMoney(last)}` : "$—";
 
+    // Change text
     if (chgEl) {
       if (Number.isFinite(last) && Number.isFinite(prev) && prev !== 0) {
         const chg = last - prev;
@@ -380,14 +336,30 @@ async function refreshTiles(symbols, snap) {
         chgEl.classList.remove("pos", "neg");
       }
     }
+
+    // Status chip
+    const rthConfirmed = !!(d?.rth?.reversal?.confirmed);
+    const ethConfirmed = !!(d?.eth?.reversal?.confirmed);
+    const confirmed = rthConfirmed || ethConfirmed;
+
+    if (statusEl) {
+      statusEl.textContent = confirmed ? "Confirmed" : "Setup";
+      statusEl.classList.toggle("confirmed", confirmed);
+      statusEl.classList.toggle("forming", !confirmed);
+    }
   }
 }
 
-/* -------------------------
-   Boot
-   ------------------------- */
+function wireCardClose() {
+  $("#cardClose")?.addEventListener("click", () => {
+    hideSideCard();
+    closeSheet();
+  });
+  $("#sheetOverlay")?.addEventListener("click", closeSheet);
+}
 
 async function boot() {
+  // Load symbols from config.js dynamically so we don’t explode if the export name differs
   const cfg = await import("./config.js");
   const SYMBOLS =
     cfg.DOW30 ||
@@ -409,10 +381,7 @@ async function boot() {
   const symbolsBySym = Object.fromEntries(symbols.map(s => [s.symbol, s]));
 
   renderCohorts($("#periodicRow"), symbols);
-
-  // Close wiring
-  wirePanelClose();
-  $("#sheetOverlay")?.addEventListener("click", closeSheet);
+  wireCardClose();
 
   // Active event line
   try {
@@ -445,18 +414,12 @@ async function boot() {
 
     await refreshTiles(symbols, snap);
 
-    // Wire tile clicks (once)
+    // Wire tile clicks once
     document.querySelectorAll(".pTile").forEach((btn) => {
       if (btn.dataset.wired === "1") return;
       btn.dataset.wired = "1";
-
       btn.addEventListener("click", async () => {
         const sym = btn.getAttribute("data-symbol");
-
-        // visual selection highlight (optional)
-        document.querySelectorAll(".pTile.selected").forEach(x => x.classList.remove("selected"));
-        btn.classList.add("selected");
-
         await populateCompanyCard(symbolsBySym, snap, sym);
       });
     });
