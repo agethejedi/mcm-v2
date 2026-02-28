@@ -76,6 +76,8 @@ function cohortLabel(key) {
     cyclicals_industrials: "Cyclicals / Industrials",
     defensive_yield: "Defensive / Yield",
     ai_exposure: "AI Exposure",
+    cyclical: "Cyclicals / Industrials",
+    defensive: "Defensive / Yield",
   };
   return map[key] || key || "Cohort";
 }
@@ -139,6 +141,8 @@ function renderCohorts(container, symbols) {
     "defensive_yield",
     "ai_exposure",
     "other",
+    "cyclical",
+    "defensive",
   ];
 
   const cols = [];
