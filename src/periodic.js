@@ -133,13 +133,160 @@ function renderCohorts(container, symbols) {
   container.innerHTML = cols.join("");
 }
 
-function setRegimeBanner({ title, sub, meta }) {
+function setRegimeBanner({ title, sub, meta, toneClass }) {
   const t = $("#homeRegimeTitle");
   const s = $("#homeRegimeSub");
   const m = $("#homeRegimeMeta");
+  const box = $("#homeRegime");
+
   if (t) t.textContent = title || "MARKET REGIME: —";
   if (s) s.textContent = sub || "—";
   if (m) m.textContent = meta || "—";
+
+  // Optional: apply event tone class to the banner box
+  if (box) {
+    box.classList.remove("evt-red", "evt-orange", "evt-blue", "evt-yellow", "evt-green", "evt-neutral");
+    box.classList.add(toneClass || "evt-neutral");
+  }
+}
+
+/* ============================================================
+   EVENT LAYER (v2)
+   Detects: 🟥 Panic, 🟧 Macro, 🟦 Policy/Risk-Off, 🟨 Earnings, 🟩 Recovery
+   ============================================================ */
+
+function getNum(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function getPrevClose(d, snap) {
+  // Try all the places your backend might put prev close
+  return (
+    getNum(d?.previous_close) ??
+    getNum(d?.meta?.previous_close) ??
+    getNum(snap?._meta?.previous_close) ??
+    null
+  );
+}
+
+function isGreen(d, snap) {
+  const last = getNum(d?.last);
+  const prev = getPrevClose(d, snap);
+  if (last === null || prev === null || prev === 0) return null;
+  if (last === prev) return "flat";
+  return last > prev;
+}
+
+function computeBreadth(symbols, snap) {
+  let up = 0, down = 0, flat = 0, used = 0;
+
+  for (const s of symbols) {
+    const d = snap?.[s.symbol];
+    if (!d) continue;
+
+    const g = isGreen(d, snap);
+    if (g === null) continue;
+
+    used++;
+    if (g === "flat") flat++;
+    else if (g) up++;
+    else down++;
+  }
+
+  const breadthUp = used ? up / used : 0;
+  return { up, down, flat, used, breadthUp };
+}
+
+function countGreen(list, snap) {
+  let up = 0, down = 0, flat = 0, used = 0;
+  for (const sym of list) {
+    const d = snap?.[sym];
+    if (!d) continue;
+    const g = isGreen(d, snap);
+    if (g === null) continue;
+    used++;
+    if (g === "flat") flat++;
+    else if (g) up++;
+    else down++;
+  }
+  return { up, down, flat, used };
+}
+
+function detectEvent(symbols, snap) {
+  // Dow “cohorts inside cohorts” (simple first pass)
+  const LEADERS = ["MSFT", "AAPL"];
+  const DEFENSIVES = ["PG", "KO", "JNJ", "MRK", "MCD", "VZ", "TRV", "CSCO", "WMT", "UNH", "AMGN"];
+  const CYCLICALS = ["CAT", "HD", "BA", "DOW", "MMM", "HON", "DIS", "CVX"];
+  const FINANCIALS = ["JPM", "GS", "AXP", "V"];
+
+  const b = computeBreadth(symbols, snap);
+  const leaders = countGreen(LEADERS, snap);
+  const def = countGreen(DEFENSIVES, snap);
+  const cyc = countGreen(CYCLICALS, snap);
+  const fin = countGreen(FINANCIALS, snap);
+
+  // Helpers
+  const pct = (x) => (x.used ? Math.round((x.up / x.used) * 100) : 0);
+
+  // 🟥 PANIC: broad selling, leaders not holding up, defensives not winning either
+  if (b.used >= 10 && b.breadthUp <= 0.25 && leaders.down >= 1 && def.up <= 2) {
+    return {
+      code: "panic",
+      badge: "🟥",
+      label: "Panic / Liquidation",
+      toneClass: "evt-red",
+      sub: "Broad selling pressure; little hiding place. Wait for exhaustion + first confirms.",
+      meta: `Breadth: ${b.up}/${b.used} up • Leaders up ${leaders.up}/${leaders.used || 0} • Defensives up ${def.up}/${def.used || 0}`
+    };
+  }
+
+  // 🟦 POLICY / RISK-OFF: defensives green while cyclicals + financials lag
+  // (we’ll use this for geopolitical shocks / tariff headlines / uncertainty)
+  if (def.up >= 3 && (cyc.down >= 3 || fin.down >= 2)) {
+    return {
+      code: "policy",
+      badge: "🟦",
+      label: "Risk-Off Rotation (Policy / Geo)",
+      toneClass: "evt-blue",
+      sub: "Rotation into safety. Rebound candidates tend to be liquidity leaders + quality defensives first.",
+      meta: `Defensives up ${def.up}/${def.used || 0} • Cyclicals down ${cyc.down}/${cyc.used || 0} • Financials down ${fin.down}/${fin.used || 0}`
+    };
+  }
+
+  // 🟧 MACRO: cyclicals + financials weak, leaders mixed → economic repricing
+  if ((cyc.down >= 3 && fin.down >= 2) && (leaders.used ? leaders.up <= 1 : true)) {
+    return {
+      code: "macro",
+      badge: "🟧",
+      label: "Macro Repricing",
+      toneClass: "evt-orange",
+      sub: "Economic expectations shifting (rates/growth). Watch if leaders can stabilize; otherwise trend risk.",
+      meta: `Cyclicals down ${cyc.down}/${cyc.used || 0} • Financials down ${fin.down}/${fin.used || 0} • Leaders up ${leaders.up}/${leaders.used || 0}`
+    };
+  }
+
+  // 🟩 RECOVERY: breadth strong and leaders participating
+  if (b.used >= 10 && b.breadthUp >= 0.60 && leaders.up >= 1) {
+    return {
+      code: "recovery",
+      badge: "🟩",
+      label: "Recovery / Mean Reversion",
+      toneClass: "evt-green",
+      sub: "Buyers returning. In rebounds, leaders often confirm first, then cyclicals.",
+      meta: `Breadth: ${b.up}/${b.used} up (${Math.round(b.breadthUp * 100)}%) • Leaders up ${leaders.up}/${leaders.used || 0}`
+    };
+  }
+
+  // 🟨 default / earnings-ish day (idiosyncratic)
+  return {
+    code: "earnings",
+    badge: "🟨",
+    label: "Normal / Earnings-Driven",
+    toneClass: "evt-yellow",
+    sub: "No clear systemic pattern. Moves likely company-specific (earnings/news).",
+    meta: `Breadth: ${b.up}/${b.used} up (${Math.round(b.breadthUp * 100)}%)`
+  };
 }
 
 /* -------------------------
@@ -461,16 +608,21 @@ async function boot() {
         title: "MARKET REGIME: —",
         sub: "Unable to load snapshot.",
         meta: "—",
+        toneClass: "evt-neutral",
       });
       return;
     }
 
     $("#asof").textContent = snap?._meta?.asof_local || snap?._meta?.asof_market || "—";
 
+    // EVENT LAYER (new)
+    const evt = detectEvent(symbols, snap);
+
     setRegimeBanner({
-      title: "MARKET REGIME: —",
-      sub: snap?._meta?.note || "Backend enforces credits-aware cadence via KV caching.",
-      meta: snap?._meta?.source ? `Source: ${snap._meta.source}` : "—",
+      title: `${evt.badge} EVENT: ${evt.label}`,
+      sub: evt.sub,
+      meta: evt.meta,
+      toneClass: evt.toneClass,
     });
 
     await refreshTiles(symbols, snap);
