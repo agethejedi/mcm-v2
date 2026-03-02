@@ -49,7 +49,7 @@ function groupByCohort(list) {
   return out;
 }
 
-function buildDefaultLinks(symbol, name) {
+function buildDefaultLinks(symbol) {
   const sym = encodeURIComponent(symbol);
   const q = encodeURIComponent(`${symbol} investor relations`);
   return [
@@ -60,6 +60,7 @@ function buildDefaultLinks(symbol, name) {
 }
 
 function renderLinks(el, links) {
+  if (!el) return;
   el.innerHTML = "";
   for (const l of links) {
     const a = document.createElement("a");
@@ -73,7 +74,7 @@ function renderLinks(el, links) {
 }
 
 /**
- * Step C: add a status chip slot to each tile (Setup / Confirmed)
+ * Tile template (includes status chip)
  */
 function tileTemplate(s) {
   return `
@@ -95,6 +96,8 @@ function tileTemplate(s) {
 }
 
 function renderCohorts(container, symbols) {
+  if (!container) return;
+
   const grouped = groupByCohort(symbols);
 
   const order = [
@@ -131,32 +134,86 @@ function renderCohorts(container, symbols) {
 }
 
 function setRegimeBanner({ title, sub, meta }) {
-  $("#homeRegimeTitle").textContent = title || "MARKET REGIME: —";
-  $("#homeRegimeSub").textContent = sub || "—";
-  $("#homeRegimeMeta").textContent = meta || "—";
+  const t = $("#homeRegimeTitle");
+  const s = $("#homeRegimeSub");
+  const m = $("#homeRegimeMeta");
+  if (t) t.textContent = title || "MARKET REGIME: —";
+  if (s) s.textContent = sub || "—";
+  if (m) m.textContent = meta || "—";
 }
 
-/* Side card show/hide helpers (your off-canvas CSS handles animation) */
+/* -------------------------
+   Off-canvas panel helpers
+   ------------------------- */
+
+function ensurePanelOverlay() {
+  let overlay = $("#panelOverlay");
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.id = "panelOverlay";
+    overlay.className = "panelOverlay hidden";
+    document.body.appendChild(overlay);
+  }
+  return overlay;
+}
+
+function openDesktopPanel() {
+  const panel = $("#sidePanel");
+  if (!panel) return;
+
+  // IMPORTANT: if your CSS uses a different class than "open", change here.
+  panel.classList.add("open");
+
+  const overlay = ensurePanelOverlay();
+  overlay.classList.remove("hidden");
+}
+
+function closeDesktopPanel() {
+  const panel = $("#sidePanel");
+  if (panel) panel.classList.remove("open");
+
+  const overlay = $("#panelOverlay");
+  if (overlay) overlay.classList.add("hidden");
+}
+
+/* Side card show/hide helpers */
 function showSideCard() {
   $("#sideEmpty")?.classList.add("hidden");
   $("#sideCard")?.classList.remove("hidden");
+
+  // Only open the off-canvas panel on desktop
+  if (!isMobile()) openDesktopPanel();
 }
+
 function hideSideCard() {
   $("#sideCard")?.classList.add("hidden");
   $("#sideEmpty")?.classList.remove("hidden");
+
+  // Close the off-canvas panel on desktop
+  if (!isMobile()) closeDesktopPanel();
 }
 
-/* Mobile sheet */
+/* -------------------------
+   Mobile sheet
+   ------------------------- */
+
 function openSheet(html) {
-  $("#sheetBody").innerHTML = html;
-  $("#sheetOverlay").classList.remove("hidden");
-  $("#sheet").classList.remove("hidden");
-}
-function closeSheet() {
-  $("#sheetOverlay").classList.add("hidden");
-  $("#sheet").classList.add("hidden");
+  const body = $("#sheetBody");
+  const overlay = $("#sheetOverlay");
+  const sheet = $("#sheet");
+  if (!body || !overlay || !sheet) return;
+
+  body.innerHTML = html;
+  overlay.classList.remove("hidden");
+  sheet.classList.remove("hidden");
 }
 
+function closeSheet() {
+  $("#sheetOverlay")?.classList.add("hidden");
+  $("#sheet")?.classList.add("hidden");
+}
+
+/* Build mobile sheet from current card DOM */
 function cardHtmlFromDom() {
   const sym = safeText($("#cardSym")?.textContent);
   const name = safeText($("#cardName")?.textContent);
@@ -222,7 +279,7 @@ async function populateCompanyCard(symbolsBySym, snap, sym) {
   const d = snap?.[sym] || {};
   const last = Number(d.last);
 
-  // try multiple “prev close” locations (depends on your worker payload)
+  // try multiple “prev close” locations
   const prev =
     Number(d?.previous_close) ||
     Number(d?.meta?.previous_close) ||
@@ -248,7 +305,7 @@ async function populateCompanyCard(symbolsBySym, snap, sym) {
 
   const links = Array.isArray(s.links) && s.links.length
     ? s.links
-    : buildDefaultLinks(s.symbol, s.name);
+    : buildDefaultLinks(s.symbol);
 
   renderLinks($("#cardLinks"), links);
 
@@ -281,7 +338,7 @@ async function populateCompanyCard(symbolsBySym, snap, sym) {
     // leave placeholders
   }
 
-  // Earnings (optional: if your endpoint returns pe, fill it)
+  // Earnings (optional)
   try {
     const ern = await getEarnings(sym);
     const peFromApi = Number(ern?.pe ?? ern?.fundamentals?.pe);
@@ -295,16 +352,12 @@ async function populateCompanyCard(symbolsBySym, snap, sym) {
   // Mobile sheet
   if (isMobile()) {
     openSheet(cardHtmlFromDom());
-    const btn = $("#sheetClose");
-    if (btn) btn.addEventListener("click", closeSheet, { once: true });
+    $("#sheetClose")?.addEventListener("click", closeSheet, { once: true });
   }
 }
 
 /**
- * Step C: set each tile’s status chip (Setup vs Confirmed)
- * Uses snapshot reversal confirmation when present:
- *   d.rth.reversal.confirmed  (preferred)
- * Falls back to ETH confirmation if you ever enable it.
+ * Update price/change + status chip (Setup vs Confirmed)
  */
 async function refreshTiles(symbols, snap) {
   for (const s of symbols) {
@@ -322,7 +375,6 @@ async function refreshTiles(symbols, snap) {
 
     if (priceEl) priceEl.textContent = Number.isFinite(last) ? `$${fmtMoney(last)}` : "$—";
 
-    // Change text
     if (chgEl) {
       if (Number.isFinite(last) && Number.isFinite(prev) && prev !== 0) {
         const chg = last - prev;
@@ -337,7 +389,6 @@ async function refreshTiles(symbols, snap) {
       }
     }
 
-    // Status chip
     const rthConfirmed = !!(d?.rth?.reversal?.confirmed);
     const ethConfirmed = !!(d?.eth?.reversal?.confirmed);
     const confirmed = rthConfirmed || ethConfirmed;
@@ -351,22 +402,32 @@ async function refreshTiles(symbols, snap) {
 }
 
 function wireCardClose() {
+  // Close button (desktop)
   $("#cardClose")?.addEventListener("click", () => {
     hideSideCard();
     closeSheet();
   });
+
+  // Mobile overlay click closes sheet
   $("#sheetOverlay")?.addEventListener("click", closeSheet);
+
+  // Desktop overlay click closes panel
+  const overlay = ensurePanelOverlay();
+  overlay.addEventListener("click", () => {
+    hideSideCard();
+  });
+
+  // Escape closes whichever is open
+  window.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    closeSheet();
+    hideSideCard();
+  });
 }
 
 async function boot() {
-  // Load symbols from config.js dynamically so we don’t explode if the export name differs
   const cfg = await import("./config.js");
-  const SYMBOLS =
-    cfg.DOW30 ||
-    cfg.SYMBOLS ||
-    cfg.symbols ||
-    [];
-
+  const SYMBOLS = cfg.DOW30 || cfg.SYMBOLS || cfg.symbols || [];
   const UI_REFRESH_MS = Number(cfg.UI_REFRESH_MS) || 60_000;
 
   const symbols = SYMBOLS.map(s => ({
