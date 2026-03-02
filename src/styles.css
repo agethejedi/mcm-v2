@@ -147,6 +147,15 @@ main{ padding: 10px 22px 30px; }
   backdrop-filter: blur(10px);
   box-shadow: 0 0 26px rgba(0,0,0,.35);
 }
+
+/* Event tone classes for the banner box */
+#homeRegime.evt-red{    border-color: rgba(255,77,109,.55); box-shadow: 0 0 30px rgba(255,77,109,.18); }
+#homeRegime.evt-orange{ border-color: rgba(255,159,67,.55); box-shadow: 0 0 30px rgba(255,159,67,.18); }
+#homeRegime.evt-blue{   border-color: rgba(72,167,255,.55); box-shadow: 0 0 30px rgba(72,167,255,.18); }
+#homeRegime.evt-yellow{ border-color: rgba(255,209,102,.55); box-shadow: 0 0 30px rgba(255,209,102,.14); }
+#homeRegime.evt-green{  border-color: rgba(49,255,154,.55); box-shadow: 0 0 30px rgba(49,255,154,.14); }
+#homeRegime.evt-neutral{ border-color: rgba(90,220,255,.22); }
+
 .regime-title{ font-weight:900; letter-spacing:.12em; font-size:12px; }
 .regime-sub{ margin-top:6px; color: var(--muted); font-size:12px; }
 .regime-right{ color: var(--muted); font-size:12px; text-align:right; max-width: 360px; }
