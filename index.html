@@ -8,6 +8,7 @@
   </head>
 
   <body>
+    <!-- Step A: Shell + Left Rail (desktop) -->
     <div class="shell">
       <aside class="rail" aria-label="RiskXLabs rail">
         <div class="railTop">
@@ -23,125 +24,111 @@
       </aside>
 
       <div class="app">
-        <header class="appHeader">
-          <div class="headerMain">
-            <div class="brand">
-              <div class="logo"></div>
-              <div class="brandBlock">
-                <h1>MCM — PERIODIC TABLE OF THE DOW</h1>
-                <div class="sub">Teaching + navigation framework for market behavior (experimental)</div>
+        <header>
+          <div class="brand">
+            <div class="logo"></div>
+            <div>
+              <h1>MCM — PERIODIC TABLE OF THE DOW</h1>
+              <div class="sub">Teaching + navigation framework for market behavior (experimental)</div>
 
-                <div class="legendRow" aria-label="Legend">
-                  <span class="legendChip forming"><span class="dot"></span> SETUP FORMING</span>
-                  <span class="legendChip confirmed"><span class="dot"></span> CONFIRMED SETUP</span>
-                </div>
+              <!-- Step A: Legend chips (matches the mock) -->
+              <div class="legendRow" aria-label="Legend">
+                <span class="legendChip forming"><span class="dot"></span> SETUP FORMING</span>
+                <span class="legendChip confirmed"><span class="dot"></span> CONFIRMED SETUP</span>
               </div>
             </div>
+          </div>
 
-            <nav class="actions" aria-label="Section navigation">
-              <a class="navlink active" href="/">Home</a>
-              <a class="navlink" href="/events.html">Events</a>
-              <a class="navlink" href="/performance.html">Performance</a>
-              <a class="navlink" href="/live.html">Live Dashboard</a>
-              <a class="navlink" href="/faq.html">FAQ / Playbook</a>
-            </nav>
+          <div class="actions">
+            <a class="navlink active" href="/">Home</a>
+            <a class="navlink" href="/events.html">Events</a>
+            <a class="navlink" href="/performance.html">Performance</a>
+            <a class="navlink" href="/live.html">Live Dashboard</a>
+            <a class="navlink" href="/faq.html">FAQ / Playbook</a>
           </div>
         </header>
 
-        <main class="appMain">
-          <section class="dashboardShell">
-            <div class="dashboardGrid">
-              <section class="primaryColumn">
-                <div class="heroCard">
-                  <div class="heroRow">
-                    <div class="heroLeft">
-                      <div class="regime neutral" id="homeRegime">
-                        <div class="regime-left">
-                          <div class="regime-title" id="homeRegimeTitle">MARKET REGIME: —</div>
-                          <div class="regime-sub" id="homeRegimeSub">Loading…</div>
-                          <div class="regime-first" id="homeEventLine">Active event: —</div>
-                        </div>
-                        <div class="regime-right" id="homeRegimeMeta">—</div>
-                      </div>
+        <main>
+          <div class="heroRow">
+            <div class="heroLeft">
+              <div class="regime neutral" id="homeRegime">
+                <div class="regime-left">
+                  <div class="regime-title" id="homeRegimeTitle">MARKET REGIME: —</div>
+                  <div class="regime-sub" id="homeRegimeSub">Loading…</div>
+                  <div class="regime-first" id="homeEventLine">Active event: —</div>
+                </div>
+                <div class="regime-right" id="homeRegimeMeta">—</div>
+              </div>
 
-                      <div class="metaTop">
-                        <div>Universe: <span id="universeLabel">Dow 30</span></div>
-                        <div>Data as-of: <span id="asof">—</span></div>
-                        <div class="muted">Tap a tile for a quick company card</div>
-                      </div>
-                    </div>
+              <div class="metaTop">
+                <div>Universe: <span id="universeLabel">Dow 30</span></div>
+                <div>Data as-of: <span id="asof">—</span></div>
+                <div class="muted">Tap a tile for a quick company card</div>
+              </div>
+            </div>
 
-                    <aside class="sidePanel" id="sidePanel" aria-label="Company card panel">
-                      <div class="sideEmpty" id="sideEmpty">
-                        <div class="sideTitle">Company Card</div>
-                        <div class="sideHint">Tap a tile to inspect the company, links, and key stats.</div>
-                        <div class="sideHint muted">(CEO/CFO + EPS history can be added via a fundamentals provider.)</div>
-                      </div>
+            <!-- Side panel stays in DOM (desktop); periodic.js controls visibility/off-canvas -->
+            <aside class="sidePanel" id="sidePanel">
+              <div class="sideEmpty" id="sideEmpty">
+                <div class="sideTitle">Company Card</div>
+                <div class="sideHint">Tap a tile to inspect the company, links, and key stats.</div>
+                <div class="sideHint muted">(CEO/CFO + EPS history can be added via a fundamentals provider.)</div>
+              </div>
 
-                      <div class="sideCard hidden" id="sideCard">
-                        <div class="sideHeader">
-                          <div>
-                            <div class="sideSym" id="cardSym">—</div>
-                            <div class="sideName" id="cardName">—</div>
-                            <div class="sideCat" id="cardCat">—</div>
-                          </div>
-                          <button class="xbtn" id="cardClose" aria-label="Close">×</button>
-                        </div>
-
-                        <div class="sidePrice">
-                          <div class="priceBig" id="cardPrice">—</div>
-                          <div class="priceSub" id="cardChg">—</div>
-                        </div>
-
-                        <div class="sideSection">
-                          <div class="sideSectionTitle">What the company does</div>
-                          <div class="sideText" id="cardBlurb">—</div>
-                        </div>
-
-                        <div class="sideSection">
-                          <div class="sideSectionTitle">Quick stats (v2)</div>
-                          <div class="kv">
-                            <div>P/E:</div><div id="cardPE">—</div>
-                            <div>Yield:</div><div id="cardYield">—</div>
-                            <div>Ex-date:</div><div id="cardEx">—</div>
-                            <div>Pay date:</div><div id="cardPay">—</div>
-                          </div>
-                          <div class="sideHint muted">Stats are placeholders until a fundamentals feed is connected.</div>
-                        </div>
-
-                        <div class="sideSection">
-                          <div class="sideSectionTitle">Links</div>
-                          <div class="linkList" id="cardLinks"></div>
-                        </div>
-                      </div>
-                    </aside>
+              <div class="sideCard hidden" id="sideCard">
+                <div class="sideHeader">
+                  <div>
+                    <div class="sideSym" id="cardSym">—</div>
+                    <div class="sideName" id="cardName">—</div>
+                    <div class="sideCat" id="cardCat">—</div>
                   </div>
+                  <button class="xbtn" id="cardClose" aria-label="Close">×</button>
                 </div>
 
-                <section class="periodicSection">
-                  <div class="periodicSectionHead">
-                    <div>
-                      <div class="sectionEyebrow">Market Structure</div>
-                      <h2 class="sectionTitle">Dow Cohort Map</h2>
-                    </div>
-                  </div>
+                <div class="sidePrice">
+                  <div class="priceBig" id="cardPrice">—</div>
+                  <div class="priceSub" id="cardChg">—</div>
+                </div>
 
-                  <div class="periodicRow" id="periodicRow">
-                    <!-- Cohort columns injected here -->
-                  </div>
-                </section>
-              </section>
-            </div>
-          </section>
+                <div class="sideSection">
+                  <div class="sideSectionTitle">What the company does</div>
+                  <div class="sideText" id="cardBlurb">—</div>
+                </div>
 
+                <div class="sideSection">
+                  <div class="sideSectionTitle">Quick stats (v2)</div>
+                  <div class="kv">
+                    <div>P/E:</div><div id="cardPE">—</div>
+                    <div>Yield:</div><div id="cardYield">—</div>
+                    <div>Ex-date:</div><div id="cardEx">—</div>
+                    <div>Pay date:</div><div id="cardPay">—</div>
+                  </div>
+                  <div class="sideHint muted">Stats are placeholders until a fundamentals feed is connected.</div>
+                </div>
+
+                <div class="sideSection">
+                  <div class="sideSectionTitle">Links</div>
+                  <div class="linkList" id="cardLinks"></div>
+                </div>
+              </div>
+            </aside>
+          </div>
+
+          <div class="periodicRow" id="periodicRow">
+            <!-- Cohort columns injected here -->
+          </div>
+
+          <!-- ✅ Desktop off-canvas overlay (FIX for desktop panel activation) -->
           <div class="panelOverlay hidden" id="panelOverlay"></div>
 
+          <!-- Mobile bottom sheet for the company card -->
           <div class="sheetOverlay hidden" id="sheetOverlay"></div>
           <div class="sheet hidden" id="sheet">
             <div class="sheetGrab"></div>
             <div class="sheetBody" id="sheetBody"></div>
           </div>
 
+          <!-- Onboarding (one-time) -->
           <div class="onboardOverlay hidden" id="onboardOverlay">
             <div class="onboardCard">
               <h2>🧭 How to read this screen</h2>
