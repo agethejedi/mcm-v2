@@ -2356,3 +2356,42 @@ main{
     scroll-behavior: auto !important;
   }
 }
+/* =========================================================
+   STRUCTURE MODULE FRAME
+   ========================================================= */
+
+.structureFrame{
+  border:1px solid rgba(102,246,255,.14);
+  border-radius:18px;
+  padding:18px 18px 20px 18px;
+  margin-top:18px;
+
+  background: linear-gradient(
+    180deg,
+    rgba(8,18,32,.45),
+    rgba(6,14,26,.35)
+  );
+
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,.25) inset,
+    0 18px 50px rgba(0,0,0,.35);
+}
+
+.structureHeader{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  margin-bottom:14px;
+}
+
+.structureLabel{
+  font-size:11px;
+  letter-spacing:.18em;
+  color:rgba(180,220,255,.45);
+}
+
+.structureTitle{
+  font-size:20px;
+  font-weight:700;
+  color:rgba(230,245,255,.92);
+}
