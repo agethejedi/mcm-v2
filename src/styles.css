@@ -2038,3 +2038,321 @@ main{
     0 0 22px rgba(255,198,107,.05),
     0 12px 28px rgba(0,0,0,.24) !important;
 }
+/* =========================================================
+   MCM v3 — LAYER 4: MICRO-INTERACTIONS (TACTICAL)
+   Append to bottom of styles.css
+   ========================================================= */
+
+:root{
+  --ease-fast: 140ms ease;
+  --ease-med: 220ms cubic-bezier(.2,.8,.2,1);
+  --ease-slow: 320ms cubic-bezier(.2,.8,.2,1);
+}
+
+/* Global interaction polish */
+.navlink,
+.btn,
+.railBtn,
+.legendChip,
+.ptile,
+.pTile,
+.pCol,
+.cohortCol,
+.regime,
+.sidePanel,
+.xbtn,
+.tab,
+.pillbtn,
+.badge,
+.statusChip,
+.pill{
+  transition:
+    transform var(--ease-fast),
+    opacity var(--ease-fast),
+    color var(--ease-fast),
+    background var(--ease-med),
+    border-color var(--ease-med),
+    box-shadow var(--ease-med);
+}
+
+/* =========================================
+   NAV / HEADER INTERACTIONS
+   ========================================= */
+
+.navlink{
+  position: relative;
+}
+
+.navlink:hover{
+  transform: translateY(-1px);
+}
+
+.navlink:active{
+  transform: translateY(0);
+}
+
+.navlink.active::after{
+  content:"";
+  position:absolute;
+  left:14px;
+  right:14px;
+  bottom:-7px;
+  height:2px;
+  border-radius:999px;
+  background: linear-gradient(90deg, rgba(102,246,255,.0), rgba(102,246,255,.85), rgba(102,246,255,.0));
+  opacity:.9;
+}
+
+/* rail buttons */
+.railBtn:hover{
+  transform: translateY(-1px);
+  border-color: rgba(102,246,255,.34);
+  box-shadow: 0 0 18px rgba(102,246,255,.08);
+}
+
+.railBtn:active{
+  transform: translateY(0);
+}
+
+/* =========================================
+   PANEL / SECTION MOTION
+   ========================================= */
+
+.heroCard:hover,
+.periodicSection:hover,
+.cardWide:hover,
+.doc:hover,
+.coach:hover{
+  box-shadow:
+    0 0 0 1px rgba(102,246,255,.05) inset,
+    0 18px 42px rgba(0,0,0,.30),
+    0 8px 20px rgba(0,0,0,.18);
+}
+
+/* regime panel should feel responsive but disciplined */
+.regime:hover{
+  transform: translateY(-1px);
+}
+
+/* module hover */
+.pCol:hover,
+.cohortCol:hover{
+  transform: translateY(-1px);
+  border-color: rgba(102,246,255,.24);
+}
+
+/* =========================================
+   TILE INTERACTIONS
+   ========================================= */
+
+.ptile,
+.pTile{
+  will-change: transform, box-shadow, border-color;
+}
+
+.ptile:hover,
+.pTile:hover{
+  transform: translateY(-2px);
+}
+
+.ptile:active,
+.pTile:active{
+  transform: translateY(-1px) scale(.997);
+}
+
+/* keyboard accessibility */
+.ptile:focus-visible,
+.pTile:focus-visible,
+.navlink:focus-visible,
+.btn:focus-visible,
+.xbtn:focus-visible,
+.tab:focus-visible,
+.pillbtn:focus-visible{
+  outline: none;
+  box-shadow:
+    0 0 0 2px rgba(8,18,30,.95),
+    0 0 0 4px rgba(102,246,255,.26);
+}
+
+/* selected tile gets a calm tactical pulse */
+@keyframes selectedPulse {
+  0% {
+    box-shadow:
+      0 0 0 1px rgba(102,246,255,.10) inset,
+      0 0 0 rgba(102,246,255,0),
+      0 14px 32px rgba(0,0,0,.30);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(102,246,255,.14) inset,
+      0 0 18px rgba(102,246,255,.10),
+      0 14px 32px rgba(0,0,0,.30);
+  }
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(102,246,255,.10) inset,
+      0 0 0 rgba(102,246,255,0),
+      0 14px 32px rgba(0,0,0,.30);
+  }
+}
+
+.pTile.selected{
+  animation: selectedPulse 2.6s ease-in-out infinite;
+}
+
+/* =========================================
+   SIGNAL PULSES
+   ========================================= */
+
+@keyframes pulseConfirm {
+  0%, 100% {
+    box-shadow:
+      0 0 0 1px rgba(61,255,173,.04) inset,
+      0 0 0 rgba(61,255,173,0);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(61,255,173,.08) inset,
+      0 0 14px rgba(61,255,173,.10);
+  }
+}
+
+@keyframes pulseForming {
+  0%, 100% {
+    box-shadow:
+      0 0 0 1px rgba(255,198,107,.03) inset,
+      0 0 0 rgba(255,198,107,0);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(255,198,107,.08) inset,
+      0 0 12px rgba(255,198,107,.08);
+  }
+}
+
+.legendChip.confirmed{
+  animation: pulseConfirm 3.2s ease-in-out infinite;
+}
+
+.legendChip.forming{
+  animation: pulseForming 3.6s ease-in-out infinite;
+}
+
+/* use these when setup pills/classes support it */
+.statusChip.confirmed,
+.pill.confirmed{
+  animation: pulseConfirm 3.2s ease-in-out infinite;
+}
+
+.statusChip.forming,
+.pill.forming{
+  animation: pulseForming 3.6s ease-in-out infinite;
+}
+
+/* =========================================
+   SIDE PANEL + OVERLAY
+   ========================================= */
+
+.sidePanel{
+  transition:
+    transform var(--ease-slow),
+    box-shadow var(--ease-med),
+    background var(--ease-med);
+}
+
+.panelOverlay{
+  transition:
+    opacity var(--ease-med),
+    backdrop-filter var(--ease-med);
+}
+
+.xbtn:hover{
+  transform: translateY(-1px);
+}
+
+.xbtn:active{
+  transform: translateY(0);
+}
+
+/* =========================================
+   TABLE / ROW / BUTTON FEEDBACK
+   ========================================= */
+
+.row,
+.tbl tr td,
+.tab,
+.pillbtn,
+.btn{
+  transition:
+    transform var(--ease-fast),
+    background var(--ease-med),
+    border-color var(--ease-med),
+    box-shadow var(--ease-med),
+    color var(--ease-fast);
+}
+
+.row:hover{
+  transform: translateY(-1px);
+  border-color: rgba(102,246,255,.14);
+}
+
+.tbl tbody tr{
+  transition: background var(--ease-fast);
+}
+
+.tbl tbody tr:hover{
+  background: rgba(255,255,255,.015);
+}
+
+.tab:hover,
+.pillbtn:hover,
+.btn:hover{
+  transform: translateY(-1px);
+}
+
+.tab:active,
+.pillbtn:active,
+.btn:active{
+  transform: translateY(0);
+}
+
+/* =========================================
+   DATA / CONTENT FADE-IN HELPERS
+   ========================================= */
+
+@keyframes fadeInSoft {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.regime-sub,
+.regime-first,
+.metaTop,
+.pname,
+.pName,
+.pSub,
+.sideText,
+.rowSub,
+.cardWideSub{
+  animation: fadeInSoft 260ms ease;
+}
+
+/* =========================================
+   REDUCED MOTION SUPPORT
+   ========================================= */
+
+@media (prefers-reduced-motion: reduce){
+  *,
+  *::before,
+  *::after{
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
