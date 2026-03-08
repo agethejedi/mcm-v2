@@ -35,19 +35,6 @@
                   <span class="legendChip forming"><span class="dot"></span> SETUP FORMING</span>
                   <span class="legendChip confirmed"><span class="dot"></span> CONFIRMED SETUP</span>
                 </div>
-
-                <div class="toolbar" aria-label="Instrument toolbar">
-                  <div class="toolbarLeft">
-                    <span class="toolbarPill">As of: <span id="asofToolbar">—</span></span>
-                    <span class="toolbarPill">Universe: <span id="toolbarUniverseLabel">Dow 30</span></span>
-                  </div>
-
-                  <div class="toolbarRight">
-                    <button class="toolbtn" type="button">Performance</button>
-                    <button class="toolbtn" type="button">Periodicity</button>
-                    <button class="toolbtn" type="button">Regime Outcomes</button>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -75,29 +62,6 @@
                           <div class="regime-first" id="homeEventLine">Active event: —</div>
                         </div>
                         <div class="regime-right" id="homeRegimeMeta">—</div>
-                      </div>
-
-                      <div class="regimeRadarCard" aria-label="Regime radar">
-                        <div class="radarHeader">
-                          <div class="radarTitle">Regime Radar</div>
-                          <div class="radarMeta">Signal posture</div>
-                        </div>
-
-                        <div class="regimeRadarBar">
-                          <div class="radarTrack">
-                            <div class="radarZone riskoff">RISK-OFF</div>
-                            <div class="radarZone transition">TRANSITION</div>
-                            <div class="radarZone riskon">RISK-ON</div>
-                            <div class="radarFill neutral" id="regimeRadarFill"></div>
-                            <div class="radarNeedle neutral" id="regimeRadarNeedle"></div>
-                          </div>
-                        </div>
-
-                        <div class="radarLegend">
-                          <span class="radarLegendItem bad">Defensive leadership</span>
-                          <span class="radarLegendItem warn">Rotation / caution</span>
-                          <span class="radarLegendItem good">Broad participation</span>
-                        </div>
                       </div>
 
                       <div class="metaTop">
@@ -158,105 +122,21 @@
                   <div class="periodicSectionHead">
                     <div>
                       <div class="sectionEyebrow">RiskXLabs</div>
-                      <h2 class="sectionTitle">Periodic Table of the Dow</h2>
-                    </div>
-
-                    <div class="sectionHeadTools">
-                      <div class="sectionPill">All Cohorts</div>
+                      <h2 class="sectionTitle">Periodic Table of the Dow 30</h2>
                     </div>
                   </div>
 
                   <div class="structureFrame">
-                    <div class="structureTopbar">
-                      <div class="structureHeader">
-                        <div class="structureLabel">MARKET STRUCTURE</div>
-                        <div class="structureTitle">Dow Cohort Map</div>
-                      </div>
 
-                      <div class="structureControls">
-                        <button class="toolbtn mini" type="button">All</button>
-                        <button class="toolbtn mini" type="button">Setup Forming</button>
-                        <button class="toolbtn mini" type="button">Confirmed</button>
-                      </div>
-                    </div>
+  <div class="structureHeader">
+    <div class="structureLabel">MARKET STRUCTURE</div>
+    <div class="structureTitle">Dow Cohort Map</div>
+  </div>
 
-                    <div class="systemIntelGrid">
-                      <section class="intelCard breadthCard" aria-label="Market breadth mini-map">
-                        <div class="intelCardHead">
-                          <div>
-                            <div class="intelLabel">Market Breadth</div>
-                            <div class="intelTitle">Participation Mini-Map</div>
-                          </div>
-                          <div class="intelMeta">Internal read</div>
-                        </div>
+  <div class="periodicRow" id="periodicRow"></div>
 
-                        <div class="breadthMiniMap" id="breadthMiniMap">
-                          <div class="breadthCell pos"></div>
-                          <div class="breadthCell pos"></div>
-                          <div class="breadthCell pos"></div>
-                          <div class="breadthCell neutral"></div>
-                          <div class="breadthCell neg"></div>
-
-                          <div class="breadthCell pos"></div>
-                          <div class="breadthCell pos"></div>
-                          <div class="breadthCell neutral"></div>
-                          <div class="breadthCell neg"></div>
-                          <div class="breadthCell neg"></div>
-
-                          <div class="breadthCell neutral"></div>
-                          <div class="breadthCell pos"></div>
-                          <div class="breadthCell pos"></div>
-                          <div class="breadthCell neutral"></div>
-                          <div class="breadthCell neg"></div>
-                        </div>
-
-                        <div class="breadthFooter">
-                          <span class="breadthStat good">Advancers: —</span>
-                          <span class="breadthStat bad">Decliners: —</span>
-                          <span class="breadthStat muted">Mixed: —</span>
-                        </div>
-                      </section>
-
-                      <section class="intelCard momentumCard" aria-label="Cohort momentum signals">
-                        <div class="intelCardHead">
-                          <div>
-                            <div class="intelLabel">Cohort Momentum</div>
-                            <div class="intelTitle">Leadership Signal Rail</div>
-                          </div>
-                          <div class="intelMeta">Relative pressure</div>
-                        </div>
-
-                        <div class="cohortMomentumRail" id="cohortMomentumRail">
-                          <div class="momentumRow leading">
-                            <span class="momentumName">Liquidity Leaders</span>
-                            <span class="momentumBar"><span class="momentumFill" style="width:72%"></span></span>
-                            <span class="momentumState">Leading</span>
-                          </div>
-                          <div class="momentumRow watch">
-                            <span class="momentumName">Reflex / Growth</span>
-                            <span class="momentumBar"><span class="momentumFill" style="width:48%"></span></span>
-                            <span class="momentumState">Watch</span>
-                          </div>
-                          <div class="momentumRow neutral">
-                            <span class="momentumName">Macro-Sensitive</span>
-                            <span class="momentumBar"><span class="momentumFill" style="width:41%"></span></span>
-                            <span class="momentumState">Neutral</span>
-                          </div>
-                          <div class="momentumRow lagging">
-                            <span class="momentumName">Cyclicals / Industrials</span>
-                            <span class="momentumBar"><span class="momentumFill" style="width:29%"></span></span>
-                            <span class="momentumState">Lagging</span>
-                          </div>
-                          <div class="momentumRow leading">
-                            <span class="momentumName">Defensive / Yield</span>
-                            <span class="momentumBar"><span class="momentumFill" style="width:61%"></span></span>
-                            <span class="momentumState">Holding Up</span>
-                          </div>
-                        </div>
-                      </section>
-                    </div>
-
-                    <div class="periodicRow" id="periodicRow"></div>
+</div>
+                    <!-- Cohort columns injected here -->
                   </div>
                 </section>
               </section>
