@@ -2417,3 +2417,16 @@ main{
   opacity:.25;
   mix-blend-mode: overlay;
 }
+.structureFrame::before{
+  content:"";
+  display:block;
+  height:1px;
+  margin:16px 0 18px 0;
+
+  background:linear-gradient(
+    90deg,
+    transparent,
+    rgba(102,246,255,.25),
+    transparent
+  );
+}
