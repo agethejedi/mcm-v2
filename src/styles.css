@@ -343,6 +343,81 @@ h1{
   flex-wrap: wrap;
 }
 
+/* =========================================================
+   INSTRUMENT TOOLBAR
+   ========================================================= */
+
+.toolbarRow{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  margin-top:12px;
+  padding:8px 12px;
+
+  border:1px solid rgba(120,240,255,.12);
+  border-radius:12px;
+
+  background: rgba(10,22,36,.35);
+  backdrop-filter: blur(8px);
+}
+
+.toolbarLeft{
+  font-size:12px;
+  color:var(--muted);
+}
+
+.toolbarLabel{
+  margin-right:6px;
+}
+
+.toolbarCenter{
+  font-size:12px;
+  letter-spacing:.04em;
+}
+
+.universe{
+  color:rgba(235,245,255,.9);
+}
+
+.universe.active{
+  color:var(--cyan);
+  font-weight:600;
+}
+
+.universe.inactive{
+  opacity:.65;
+  cursor:pointer;
+}
+
+.universe.inactive:hover{
+  opacity:.9;
+  text-shadow:0 0 10px rgba(102,246,255,.25);
+}
+
+.sep{
+  margin:0 6px;
+  opacity:.5;
+}
+
+.toolbarRight{
+  display:flex;
+  gap:10px;
+}
+
+.mode{
+  font-size:12px;
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid rgba(120,240,255,.14);
+  background: rgba(255,255,255,.02);
+  cursor:pointer;
+}
+
+.mode:hover{
+  border-color: rgba(102,246,255,.45);
+}
+
 .legendChip{
   display:inline-flex;
   gap:8px;
@@ -2429,4 +2504,23 @@ main{
     rgba(102,246,255,.25),
     transparent
   );
+}
+
+/* =========================================================
+   TOOLBAR LAYOUT POLISH
+   ========================================================= */
+
+.toolbarCenter{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  white-space:nowrap;
+}
+
+.toolbarRow{
+  border:1px solid rgba(120,240,255,.12);
+  border-radius:12px;
+  background: rgba(10,22,36,.35);
+  backdrop-filter: blur(8px);
+  font-size:12px;
 }
