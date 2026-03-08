@@ -2395,3 +2395,25 @@ main{
   font-weight:700;
   color:rgba(230,245,255,.92);
 }
+/* =========================================================
+   TACTICAL SCANLINE EFFECT
+   ========================================================= */
+
+.app::after{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255,255,255,.015),
+      rgba(255,255,255,.015) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+
+  opacity:.25;
+  mix-blend-mode: overlay;
+}
