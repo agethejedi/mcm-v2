@@ -1685,3 +1685,356 @@ main{
   letter-spacing: .18em;
   opacity: .75;
 }
+/* =========================================================
+   MCM v3 — LAYER 3: SIGNAL COLOR LANGUAGE
+   Append to bottom of styles.css
+   ========================================================= */
+
+:root{
+  --sig-neutral: rgba(102,246,255,.88);
+  --sig-neutral-soft: rgba(102,246,255,.18);
+
+  --sig-good: rgba(61,255,173,.95);
+  --sig-good-soft: rgba(61,255,173,.18);
+  --sig-good-glow: rgba(61,255,173,.20);
+
+  --sig-bad: rgba(255,93,122,.95);
+  --sig-bad-soft: rgba(255,93,122,.18);
+  --sig-bad-glow: rgba(255,93,122,.18);
+
+  --sig-warn: rgba(255,198,107,.95);
+  --sig-warn-soft: rgba(255,198,107,.18);
+  --sig-warn-glow: rgba(255,198,107,.16);
+
+  --sig-info: rgba(102,246,255,.95);
+  --sig-info-soft: rgba(102,246,255,.16);
+}
+
+/* =========================================================
+   REGIME = COMMAND PANEL
+   ========================================================= */
+
+/* give the regime more authority */
+.regime{
+  border-color: rgba(102,246,255,.20);
+}
+
+.regime-title{
+  color: rgba(235,245,255,.96);
+}
+
+.regime.neutral .regime-title,
+#homeRegime.evt-neutral .regime-title{
+  color: var(--sig-neutral);
+  text-shadow: 0 0 16px rgba(102,246,255,.12);
+}
+
+.regime.good .regime-title,
+#homeRegime.evt-green .regime-title{
+  color: var(--sig-good);
+  text-shadow: 0 0 18px rgba(61,255,173,.18);
+}
+
+.regime.bad .regime-title,
+#homeRegime.evt-red .regime-title{
+  color: var(--sig-bad);
+  text-shadow: 0 0 18px rgba(255,93,122,.18);
+}
+
+#homeRegime.evt-orange .regime-title,
+#homeRegime.evt-yellow .regime-title{
+  color: var(--sig-warn);
+  text-shadow: 0 0 18px rgba(255,198,107,.16);
+}
+
+#homeRegime.evt-blue .regime-title{
+  color: var(--sig-info);
+  text-shadow: 0 0 18px rgba(102,246,255,.16);
+}
+
+/* slightly stronger regime border signaling */
+#homeRegime.evt-red{
+  border-color: rgba(255,93,122,.46);
+  box-shadow:
+    0 0 0 1px rgba(255,93,122,.08) inset,
+    0 0 28px rgba(255,93,122,.10),
+    0 10px 24px rgba(0,0,0,.22);
+}
+
+#homeRegime.evt-orange,
+#homeRegime.evt-yellow{
+  border-color: rgba(255,198,107,.38);
+  box-shadow:
+    0 0 0 1px rgba(255,198,107,.06) inset,
+    0 0 24px rgba(255,198,107,.08),
+    0 10px 24px rgba(0,0,0,.22);
+}
+
+#homeRegime.evt-blue,
+#homeRegime.evt-neutral{
+  border-color: rgba(102,246,255,.24);
+  box-shadow:
+    0 0 0 1px rgba(102,246,255,.05) inset,
+    0 0 20px rgba(102,246,255,.08),
+    0 10px 24px rgba(0,0,0,.22);
+}
+
+#homeRegime.evt-green{
+  border-color: rgba(61,255,173,.38);
+  box-shadow:
+    0 0 0 1px rgba(61,255,173,.06) inset,
+    0 0 24px rgba(61,255,173,.08),
+    0 10px 24px rgba(0,0,0,.22);
+}
+
+/* =========================================================
+   LEGEND + SETUP MEANING
+   ========================================================= */
+
+.legendChip{
+  letter-spacing: .11em;
+  font-weight: 600;
+}
+
+.legendChip.forming{
+  color: rgba(255,198,107,.92);
+  background: linear-gradient(180deg, rgba(255,198,107,.08), rgba(255,198,107,.02));
+  border-color: rgba(255,198,107,.24);
+  box-shadow: 0 0 0 1px rgba(255,198,107,.04) inset;
+}
+
+.legendChip.confirmed{
+  color: rgba(61,255,173,.94);
+  background: linear-gradient(180deg, rgba(61,255,173,.08), rgba(61,255,173,.02));
+  border-color: rgba(61,255,173,.24);
+  box-shadow: 0 0 0 1px rgba(61,255,173,.04) inset;
+}
+
+/* setup chip inside tiles */
+.statusChip.forming,
+.pill.forming{
+  border-color: rgba(255,198,107,.28);
+  color: rgba(255,198,107,.96);
+  background: linear-gradient(180deg, rgba(255,198,107,.10), rgba(255,198,107,.03));
+}
+
+.statusChip.confirmed,
+.pill.confirmed{
+  border-color: rgba(61,255,173,.28);
+  color: rgba(61,255,173,.96);
+  background: linear-gradient(180deg, rgba(61,255,173,.10), rgba(61,255,173,.03));
+}
+
+/* If periodic.js uses simple pill-good / pill-bad classes */
+.pill-good{
+  border-color: rgba(61,255,173,.30);
+  color: rgba(61,255,173,.96);
+  background: linear-gradient(180deg, rgba(61,255,173,.10), rgba(61,255,173,.03));
+}
+
+.pill-bad{
+  border-color: rgba(255,93,122,.30);
+  color: rgba(255,93,122,.96);
+  background: linear-gradient(180deg, rgba(255,93,122,.10), rgba(255,93,122,.03));
+}
+
+/* =========================================================
+   COHORT / MODULE SIGNALS
+   ========================================================= */
+
+/* make cohort titles feel like active monitoring zones */
+.pColTitle,
+.cohortTitle{
+  color: rgba(92,235,255,.90);
+}
+
+/* subtle active module edge */
+.pCol,
+.cohortCol{
+  border-color: rgba(102,246,255,.18);
+}
+
+/* optional classes if JS adds them later */
+.pCol.is-leading,
+.cohortCol.is-leading{
+  border-color: rgba(61,255,173,.24);
+  box-shadow:
+    0 0 0 1px rgba(61,255,173,.05) inset,
+    0 0 26px rgba(61,255,173,.06),
+    0 10px 28px rgba(0,0,0,.26);
+}
+
+.pCol.is-lagging,
+.cohortCol.is-lagging{
+  border-color: rgba(255,93,122,.22);
+  box-shadow:
+    0 0 0 1px rgba(255,93,122,.04) inset,
+    0 0 24px rgba(255,93,122,.05),
+    0 10px 28px rgba(0,0,0,.26);
+}
+
+.pCol.is-watch,
+.cohortCol.is-watch{
+  border-color: rgba(255,198,107,.22);
+  box-shadow:
+    0 0 0 1px rgba(255,198,107,.04) inset,
+    0 0 24px rgba(255,198,107,.05),
+    0 10px 28px rgba(0,0,0,.26);
+}
+
+/* =========================================================
+   TILE SIGNALS
+   ========================================================= */
+
+/* stronger semantic hints for price state */
+.ptile.pos,
+.pTile.pos{
+  border-color: rgba(61,255,173,.22);
+  box-shadow:
+    0 0 0 1px rgba(61,255,173,.06) inset,
+    0 8px 22px rgba(0,0,0,.22);
+}
+
+.ptile.neg,
+.pTile.neg{
+  border-color: rgba(255,93,122,.20);
+  box-shadow:
+    0 0 0 1px rgba(255,93,122,.05) inset,
+    0 8px 22px rgba(0,0,0,.22);
+}
+
+/* ticker symbols can carry a little more authority */
+.psym,
+.pSym{
+  color: rgba(92,235,255,.96);
+  text-shadow: 0 0 10px rgba(102,246,255,.10);
+}
+
+/* change/price semantic tone */
+.pchg.pos,
+.pChg.pos,
+.good{
+  color: rgba(61,255,173,.96);
+  text-shadow: 0 0 10px rgba(61,255,173,.08);
+}
+
+.pchg.neg,
+.pChg.neg,
+.bad{
+  color: rgba(255,93,122,.96);
+  text-shadow: 0 0 10px rgba(255,93,122,.08);
+}
+
+/* neutral values stay quiet */
+.pchg,
+.pChg{
+  color: rgba(230,241,255,.72);
+}
+
+/* selected tile becomes a real focus target */
+.pTile.selected{
+  border-color: rgba(102,246,255,.50);
+  box-shadow:
+    0 0 0 1px rgba(102,246,255,.10) inset,
+    0 0 22px rgba(102,246,255,.08),
+    0 14px 32px rgba(0,0,0,.30);
+}
+
+.pTile.selected .pSym{
+  color: rgba(130,245,255,.98);
+}
+
+.pTile.selected .pPrice{
+  color: rgba(255,255,255,.98);
+}
+
+/* =========================================================
+   NAV / ACTION STATE LANGUAGE
+   ========================================================= */
+
+.navlink.active{
+  color: rgba(220,250,255,.98);
+  border-color: rgba(0,255,255,.58) !important;
+  box-shadow:
+    0 0 0 1px rgba(0,255,255,.16) inset,
+    0 0 16px rgba(102,246,255,.08);
+}
+
+/* buttons should read as action surfaces, not generic blocks */
+.btn{
+  border-color: rgba(102,246,255,.24);
+}
+
+.btn:hover{
+  box-shadow:
+    0 0 0 1px rgba(102,246,255,.08) inset,
+    0 10px 20px rgba(0,0,0,.18);
+}
+
+/* =========================================================
+   TABLES / BADGES / SECONDARY SIGNALS
+   ========================================================= */
+
+.badge.good{
+  color: rgba(61,255,173,.94);
+  background: linear-gradient(180deg, rgba(61,255,173,.09), rgba(61,255,173,.02));
+  border-color: rgba(61,255,173,.22);
+}
+
+.badge.bad{
+  color: rgba(255,93,122,.94);
+  background: linear-gradient(180deg, rgba(255,93,122,.09), rgba(255,93,122,.02));
+  border-color: rgba(255,93,122,.22);
+}
+
+.tbl th{
+  color: rgba(210,238,255,.70);
+}
+
+.tbl tr:hover td{
+  background: rgba(255,255,255,.015);
+}
+
+/* =========================================================
+   FUTURE-READY UTILITY CLASSES
+   ========================================================= */
+
+.sig-good{
+  color: rgba(61,255,173,.96) !important;
+}
+
+.sig-bad{
+  color: rgba(255,93,122,.96) !important;
+}
+
+.sig-warn{
+  color: rgba(255,198,107,.96) !important;
+}
+
+.sig-info{
+  color: rgba(102,246,255,.96) !important;
+}
+
+.sig-panel-good{
+  border-color: rgba(61,255,173,.24) !important;
+  box-shadow:
+    0 0 0 1px rgba(61,255,173,.05) inset,
+    0 0 22px rgba(61,255,173,.06),
+    0 12px 28px rgba(0,0,0,.24) !important;
+}
+
+.sig-panel-bad{
+  border-color: rgba(255,93,122,.24) !important;
+  box-shadow:
+    0 0 0 1px rgba(255,93,122,.05) inset,
+    0 0 22px rgba(255,93,122,.05),
+    0 12px 28px rgba(0,0,0,.24) !important;
+}
+
+.sig-panel-warn{
+  border-color: rgba(255,198,107,.24) !important;
+  box-shadow:
+    0 0 0 1px rgba(255,198,107,.05) inset,
+    0 0 22px rgba(255,198,107,.05),
+    0 12px 28px rgba(0,0,0,.24) !important;
+}
