@@ -2532,3 +2532,80 @@ main{
 .mode:hover{
   opacity:1;
 }
+/* =========================================================
+   REGIME RADAR
+   ========================================================= */
+
+.regimeRadar{
+  margin-top:14px;
+  padding:14px 16px;
+  border:1px solid rgba(120,240,255,.12);
+  border-radius:16px;
+  background: rgba(10,22,36,.30);
+  backdrop-filter: blur(8px);
+}
+
+.regimeRadarHead{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  margin-bottom:12px;
+}
+
+.regimeRadarLabel{
+  font-size:12px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:rgba(230,245,255,.82);
+  font-weight:700;
+}
+
+.regimeRadarMeta{
+  font-size:11px;
+  color:rgba(180,220,255,.54);
+}
+
+.regimeRadarTrack{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+}
+
+.radarZone{
+  padding:12px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.02);
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.radarName{
+  font-size:12px;
+  font-weight:700;
+  letter-spacing:.1em;
+}
+
+.radarDesc{
+  font-size:12px;
+  color:rgba(230,241,255,.75);
+}
+
+.radarZone.riskoff .radarName{
+  color:#ff6b6b;
+}
+
+.radarZone.transition .radarName{
+  color:#ffc46b;
+}
+
+.radarZone.riskon .radarName{
+  color:#3dffad;
+}
+
+.radarZone.active{
+  box-shadow:0 0 0 1px rgba(255,255,255,.04) inset,
+             0 10px 24px rgba(0,0,0,.25);
+}
