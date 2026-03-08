@@ -2524,3 +2524,11 @@ main{
   backdrop-filter: blur(8px);
   font-size:12px;
 }
+
+.mode{
+  opacity:.85;
+}
+
+.mode:hover{
+  opacity:1;
+}
