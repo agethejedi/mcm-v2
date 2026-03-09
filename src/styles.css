@@ -2656,9 +2656,9 @@ main{
   background:linear-gradient(
     90deg,
     #4fa6ff 0%,
-    #7bbdff 20%,
+    #7fb8ff 25%,
     #ffc86b 50%,
-    #6cffb1 80%,
+    #6cffb1 75%,
     #2fff98 100%
   );
 }
@@ -2666,14 +2666,15 @@ main{
 .spectrumIndicator{
   position:absolute;
   top:-5px;
-  width:20px;
-  height:20px;
+  width:18px;
+  height:18px;
   border-radius:50%;
 
   background:white;
   box-shadow:
-    0 0 10px rgba(255,255,255,.6),
-    0 0 20px rgba(0,255,200,.4);
+    0 0 6px rgba(255,255,255,.7),
+    0 0 12px rgba(0,255,200,.35),
+    0 0 24px rgba(0,255,200,.2);
 }
 
 /* indicator positions */
