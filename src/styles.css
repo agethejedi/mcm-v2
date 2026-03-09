@@ -2742,3 +2742,95 @@ box-shadow:
   font-size:12px;
   color:rgba(230,241,255,.85);
 }
+
+/* =========================================================
+   COHORT MOMENTUM SIGNALS
+   Safe shell for future JS classes
+   ========================================================= */
+
+.pColHead,
+.cohortHead{
+  position: relative;
+}
+
+.cohortMomentum{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  margin-left:auto;
+  padding:4px 8px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.02);
+  font-size:11px;
+  letter-spacing:.06em;
+  white-space:nowrap;
+}
+
+.cohortMomentum .momentumArrow{
+  font-weight:700;
+  line-height:1;
+}
+
+.cohortMomentum .momentumText{
+  color:rgba(230,241,255,.72);
+}
+
+/* Up */
+.cohortMomentum.momentumUp{
+  border-color: rgba(61,255,173,.24);
+  background: linear-gradient(180deg, rgba(61,255,173,.08), rgba(61,255,173,.02));
+  box-shadow: 0 0 0 1px rgba(61,255,173,.04) inset;
+}
+
+.cohortMomentum.momentumUp .momentumArrow{
+  color: rgba(61,255,173,.96);
+}
+
+.cohortMomentum.momentumUp .momentumText{
+  color: rgba(210,245,230,.86);
+}
+
+/* Flat / Watch */
+.cohortMomentum.momentumFlat{
+  border-color: rgba(255,198,107,.22);
+  background: linear-gradient(180deg, rgba(255,198,107,.08), rgba(255,198,107,.02));
+  box-shadow: 0 0 0 1px rgba(255,198,107,.04) inset;
+}
+
+.cohortMomentum.momentumFlat .momentumArrow{
+  color: rgba(255,198,107,.96);
+}
+
+.cohortMomentum.momentumFlat .momentumText{
+  color: rgba(245,232,205,.84);
+}
+
+/* Down */
+.cohortMomentum.momentumDown{
+  border-color: rgba(255,93,122,.20);
+  background: linear-gradient(180deg, rgba(255,93,122,.08), rgba(255,93,122,.02));
+  box-shadow: 0 0 0 1px rgba(255,93,122,.04) inset;
+}
+
+.cohortMomentum.momentumDown .momentumArrow{
+  color: rgba(255,93,122,.94);
+}
+
+.cohortMomentum.momentumDown .momentumText{
+  color: rgba(245,220,228,.82);
+}
+
+/* tighter cohort header alignment */
+.pColHead,
+.cohortHead{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:10px;
+}
+
+.pColHead > div:first-child,
+.cohortHead > div:first-child{
+  min-width:0;
+}
