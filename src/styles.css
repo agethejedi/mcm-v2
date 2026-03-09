@@ -2661,6 +2661,10 @@ main{
     #6cffb1 75%,
     #2fff98 100%
   );
+
+box-shadow:
+    0 0 10px rgba(0,200,255,.15),
+    inset 0 0 6px rgba(255,255,255,.08);
 }
 
 .spectrumIndicator{
@@ -2720,4 +2724,21 @@ main{
   justify-content:space-between;
   font-size:12px;
   color:rgba(230,241,255,.7);
+}
+
+/* =========================================================
+   REGIME SPECTRUM TEXT POLISH
+   ========================================================= */
+
+.labelOff,
+.labelMid,
+.labelOn{
+  font-weight:600;
+}
+
+.spectrumDescriptors{
+  display:flex;
+  justify-content:space-between;
+  font-size:12px;
+  color:rgba(230,241,255,.85);
 }
