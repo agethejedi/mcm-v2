@@ -31,8 +31,6 @@ function cohortLabel(key) {
     cyclicals_industrials: "Cyclicals / Industrials",
     defensive_yield: "Defensive / Yield",
     ai_exposure: "AI Exposure",
-
-    // support your config.js cohort keys too
     cyclical: "Cyclicals / Industrials",
     defensive: "Defensive / Yield",
   };
@@ -74,21 +72,27 @@ function renderLinks(el, links) {
 }
 
 /**
- * Tile template (includes status chip)
+ * Updated tile template
+ * Keeps current card shape and cohort columns, but improves internal layout.
  */
 function tileTemplate(s) {
   return `
-    <button class="pTile" data-symbol="${s.symbol}" aria-label="${s.symbol} tile">
-      <div class="pTop">
-        <div class="pSym">${s.symbol}</div>
-        <div class="pPrice" id="pPrice-${s.symbol}">$—</div>
+    <button class="pTile flat" data-symbol="${s.symbol}" aria-label="${s.symbol} tile">
+      <div class="tileTop">
+        <div class="tileLeft">
+          <div class="pSym">${s.symbol}</div>
+          <div class="pName">${safeText(s.name || s.company || "")}</div>
+        </div>
+        <div class="tileRight">
+          <div class="pPrice" id="pPrice-${s.symbol}">$—</div>
+        </div>
       </div>
 
-      <div class="pName">${safeText(s.name || s.company || "")}</div>
-      <div class="pSub">${safeText(s.category || s.sector || "")}</div>
-
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:10px;">
-        <div class="pChg" id="pChg-${s.symbol}">—</div>
+      <div class="tileBottom">
+        <div class="tileChangeBlock">
+          <div class="tileDollar" id="pChgDollar-${s.symbol}">—</div>
+          <div class="tilePct" id="pChgPct-${s.symbol}">—</div>
+        </div>
         <span class="statusChip forming" id="pStatus-${s.symbol}">Setup</span>
       </div>
     </button>
@@ -143,7 +147,6 @@ function setRegimeBanner({ title, sub, meta, toneClass }) {
   if (s) s.textContent = sub || "—";
   if (m) m.textContent = meta || "—";
 
-  // Optional: apply event tone class to the banner box
   if (box) {
     box.classList.remove("evt-red", "evt-orange", "evt-blue", "evt-yellow", "evt-green", "evt-neutral");
     box.classList.add(toneClass || "evt-neutral");
@@ -151,8 +154,7 @@ function setRegimeBanner({ title, sub, meta, toneClass }) {
 }
 
 /* ============================================================
-   EVENT LAYER (v2)
-   Detects: 🟥 Panic, 🟧 Macro, 🟦 Policy/Risk-Off, 🟨 Earnings, 🟩 Recovery
+   EVENT LAYER
    ============================================================ */
 
 function getNum(v) {
@@ -161,7 +163,6 @@ function getNum(v) {
 }
 
 function getPrevClose(d, snap) {
-  // Try all the places your backend might put prev close
   return (
     getNum(d?.previous_close) ??
     getNum(d?.meta?.previous_close) ??
@@ -214,7 +215,6 @@ function countGreen(list, snap) {
 }
 
 function detectEvent(symbols, snap) {
-  // Dow “cohorts inside cohorts” (simple first pass)
   const LEADERS = ["MSFT", "AAPL"];
   const DEFENSIVES = ["PG", "KO", "JNJ", "MRK", "MCD", "VZ", "TRV", "CSCO", "WMT", "UNH", "AMGN"];
   const CYCLICALS = ["CAT", "HD", "BA", "DOW", "MMM", "HON", "DIS", "CVX"];
@@ -226,10 +226,6 @@ function detectEvent(symbols, snap) {
   const cyc = countGreen(CYCLICALS, snap);
   const fin = countGreen(FINANCIALS, snap);
 
-  // Helpers
-  const pct = (x) => (x.used ? Math.round((x.up / x.used) * 100) : 0);
-
-  // 🟥 PANIC: broad selling, leaders not holding up, defensives not winning either
   if (b.used >= 10 && b.breadthUp <= 0.25 && leaders.down >= 1 && def.up <= 2) {
     return {
       code: "panic",
@@ -241,8 +237,6 @@ function detectEvent(symbols, snap) {
     };
   }
 
-  // 🟦 POLICY / RISK-OFF: defensives green while cyclicals + financials lag
-  // (we’ll use this for geopolitical shocks / tariff headlines / uncertainty)
   if (def.up >= 3 && (cyc.down >= 3 || fin.down >= 2)) {
     return {
       code: "policy",
@@ -254,7 +248,6 @@ function detectEvent(symbols, snap) {
     };
   }
 
-  // 🟧 MACRO: cyclicals + financials weak, leaders mixed → economic repricing
   if ((cyc.down >= 3 && fin.down >= 2) && (leaders.used ? leaders.up <= 1 : true)) {
     return {
       code: "macro",
@@ -266,7 +259,6 @@ function detectEvent(symbols, snap) {
     };
   }
 
-  // 🟩 RECOVERY: breadth strong and leaders participating
   if (b.used >= 10 && b.breadthUp >= 0.60 && leaders.up >= 1) {
     return {
       code: "recovery",
@@ -278,7 +270,6 @@ function detectEvent(symbols, snap) {
     };
   }
 
-  // 🟨 default / earnings-ish day (idiosyncratic)
   return {
     code: "earnings",
     badge: "🟨",
@@ -307,10 +298,7 @@ function ensurePanelOverlay() {
 function openDesktopPanel() {
   const panel = $("#sidePanel");
   if (!panel) return;
-
-  // IMPORTANT: if your CSS uses a different class than "open", change here.
   panel.classList.add("open");
-
   const overlay = ensurePanelOverlay();
   overlay.classList.remove("hidden");
 }
@@ -318,25 +306,19 @@ function openDesktopPanel() {
 function closeDesktopPanel() {
   const panel = $("#sidePanel");
   if (panel) panel.classList.remove("open");
-
   const overlay = $("#panelOverlay");
   if (overlay) overlay.classList.add("hidden");
 }
 
-/* Side card show/hide helpers */
 function showSideCard() {
   $("#sideEmpty")?.classList.add("hidden");
   $("#sideCard")?.classList.remove("hidden");
-
-  // Only open the off-canvas panel on desktop
   if (!isMobile()) openDesktopPanel();
 }
 
 function hideSideCard() {
   $("#sideCard")?.classList.add("hidden");
   $("#sideEmpty")?.classList.remove("hidden");
-
-  // Close the off-canvas panel on desktop
   if (!isMobile()) closeDesktopPanel();
 }
 
@@ -360,7 +342,6 @@ function closeSheet() {
   $("#sheet")?.classList.add("hidden");
 }
 
-/* Build mobile sheet from current card DOM */
 function cardHtmlFromDom() {
   const sym = safeText($("#cardSym")?.textContent);
   const name = safeText($("#cardName")?.textContent);
@@ -426,7 +407,6 @@ async function populateCompanyCard(symbolsBySym, snap, sym) {
   const d = snap?.[sym] || {};
   const last = Number(d.last);
 
-  // try multiple “prev close” locations
   const prev =
     Number(d?.previous_close) ||
     Number(d?.meta?.previous_close) ||
@@ -456,13 +436,11 @@ async function populateCompanyCard(symbolsBySym, snap, sym) {
 
   renderLinks($("#cardLinks"), links);
 
-  // Reset stats (then fill)
   $("#cardPE").textContent = "—";
   $("#cardYield").textContent = "—";
   $("#cardEx").textContent = "—";
   $("#cardPay").textContent = "—";
 
-  // Dividends
   try {
     const div = await getDividends(sym);
     if (div?.dividends?.length) {
@@ -475,28 +453,22 @@ async function populateCompanyCard(symbolsBySym, snap, sym) {
       $("#cardPay").textContent = pay || "—";
 
       if (Number.isFinite(last) && Number.isFinite(amt) && last > 0) {
-        const annual = amt * 4; // naive quarterly assumption
+        const annual = amt * 4;
         $("#cardYield").textContent = fmtPct(annual / last);
       } else if (Number.isFinite(amt)) {
         $("#cardYield").textContent = `$${fmtMoney(amt)} (per period)`;
       }
     }
-  } catch {
-    // leave placeholders
-  }
+  } catch {}
 
-  // Earnings (optional)
   try {
     const ern = await getEarnings(sym);
     const peFromApi = Number(ern?.pe ?? ern?.fundamentals?.pe);
     if (Number.isFinite(peFromApi)) $("#cardPE").textContent = peFromApi.toFixed(2);
-  } catch {
-    // leave placeholders
-  }
+  } catch {}
 
   showSideCard();
 
-  // Mobile sheet
   if (isMobile()) {
     openSheet(cardHtmlFromDom());
     $("#sheetClose")?.addEventListener("click", closeSheet, { once: true });
@@ -504,7 +476,11 @@ async function populateCompanyCard(symbolsBySym, snap, sym) {
 }
 
 /**
- * Update price/change + status chip (Setup vs Confirmed)
+ * Updated tile refresh
+ * - fills price
+ * - fills dollar + percent change separately
+ * - sets badge
+ * - tints tile green/red/neutral
  */
 async function refreshTiles(symbols, snap) {
   for (const s of symbols) {
@@ -516,23 +492,47 @@ async function refreshTiles(symbols, snap) {
       Number(d?.meta?.previous_close) ||
       NaN;
 
+    const tileEl = document.querySelector(`.pTile[data-symbol="${s.symbol}"]`);
     const priceEl = $(`#pPrice-${s.symbol}`);
-    const chgEl = $(`#pChg-${s.symbol}`);
+    const chgDollarEl = $(`#pChgDollar-${s.symbol}`);
+    const chgPctEl = $(`#pChgPct-${s.symbol}`);
     const statusEl = $(`#pStatus-${s.symbol}`);
 
-    if (priceEl) priceEl.textContent = Number.isFinite(last) ? `$${fmtMoney(last)}` : "$—";
+    if (priceEl) {
+      priceEl.textContent = Number.isFinite(last) ? `$${fmtMoney(last)}` : "$—";
+    }
 
-    if (chgEl) {
+    if (chgDollarEl && chgPctEl && tileEl) {
+      tileEl.classList.remove("pos", "neg", "flat");
+
       if (Number.isFinite(last) && Number.isFinite(prev) && prev !== 0) {
         const chg = last - prev;
         const pct = chg / prev;
         const sign = chg >= 0 ? "+" : "";
-        chgEl.textContent = `${sign}${fmtMoney(chg)} (${sign}${fmtPct(pct)})`;
-        chgEl.classList.toggle("pos", chg > 0);
-        chgEl.classList.toggle("neg", chg < 0);
+
+        chgDollarEl.textContent = `${sign}$${fmtMoney(chg)}`;
+        chgPctEl.textContent = `${sign}${fmtPct(pct)}`;
+
+        chgDollarEl.classList.remove("pos", "neg");
+        chgPctEl.classList.remove("pos", "neg");
+
+        if (chg > 0) {
+          tileEl.classList.add("pos");
+          chgDollarEl.classList.add("pos");
+          chgPctEl.classList.add("pos");
+        } else if (chg < 0) {
+          tileEl.classList.add("neg");
+          chgDollarEl.classList.add("neg");
+          chgPctEl.classList.add("neg");
+        } else {
+          tileEl.classList.add("flat");
+        }
       } else {
-        chgEl.textContent = "—";
-        chgEl.classList.remove("pos", "neg");
+        chgDollarEl.textContent = "—";
+        chgPctEl.textContent = "—";
+        chgDollarEl.classList.remove("pos", "neg");
+        chgPctEl.classList.remove("pos", "neg");
+        tileEl.classList.add("flat");
       }
     }
 
@@ -549,22 +549,18 @@ async function refreshTiles(symbols, snap) {
 }
 
 function wireCardClose() {
-  // Close button (desktop)
   $("#cardClose")?.addEventListener("click", () => {
     hideSideCard();
     closeSheet();
   });
 
-  // Mobile overlay click closes sheet
   $("#sheetOverlay")?.addEventListener("click", closeSheet);
 
-  // Desktop overlay click closes panel
   const overlay = ensurePanelOverlay();
   overlay.addEventListener("click", () => {
     hideSideCard();
   });
 
-  // Escape closes whichever is open
   window.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
     closeSheet();
@@ -591,7 +587,6 @@ async function boot() {
   renderCohorts($("#periodicRow"), symbols);
   wireCardClose();
 
-  // Active event line
   try {
     const active = await getActiveEvent();
     $("#homeEventLine").textContent = active?.title ? `Active event: ${active.title}` : "Active event: —";
@@ -615,7 +610,6 @@ async function boot() {
 
     $("#asof").textContent = snap?._meta?.asof_local || snap?._meta?.asof_market || "—";
 
-    // EVENT LAYER (new)
     const evt = detectEvent(symbols, snap);
 
     setRegimeBanner({
@@ -627,7 +621,6 @@ async function boot() {
 
     await refreshTiles(symbols, snap);
 
-    // Wire tile clicks once
     document.querySelectorAll(".pTile").forEach((btn) => {
       if (btn.dataset.wired === "1") return;
       btn.dataset.wired = "1";
