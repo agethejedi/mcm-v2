@@ -2854,3 +2854,62 @@ box-shadow:
 .statusChip{
   flex:0 0 auto;
 }
+
+/* =========================================================
+   DJIA QUOTE STRIP
+   ========================================================= */
+
+.quoteStrip{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:16px;
+  width:100%;
+}
+
+.quoteStripLeft{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  min-width:0;
+}
+
+.djiaQuote{
+  display:flex;
+  align-items:baseline;
+  gap:14px;
+  flex-wrap:wrap;
+}
+
+.djiaLabel{
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.14em;
+  color:rgba(102,246,255,.92);
+  text-transform:uppercase;
+}
+
+.djiaLast{
+  font-size:20px;
+  font-weight:800;
+  color:rgba(240,248,255,.96);
+}
+
+.djiaChange,
+.djiaPct{
+  font-size:15px;
+  font-weight:700;
+  color:rgba(230,241,255,.72);
+}
+
+.djiaChange.pos,
+.djiaPct.pos{
+  color:rgba(61,255,173,.96);
+  text-shadow:0 0 10px rgba(61,255,173,.08);
+}
+
+.djiaChange.neg,
+.djiaPct.neg{
+  color:rgba(255,93,122,.96);
+  text-shadow:0 0 10px rgba(255,93,122,.08);
+}
