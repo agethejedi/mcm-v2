@@ -673,8 +673,14 @@ async function boot() {
   async function refresh() {
     let snap = null;
     try {
-      snap = await getSnapshot(symbols.map(s => s.symbol));
-    } catch {
+      const requestSymbols = Array.from(
+  new Set([
+    ...symbols.map(s => s.symbol),
+    ...DJIA_CANDIDATES
+  ])
+);
+
+snap = await getSnapshot(requestSymbols);    } catch {
       setRegimeBanner({
         title: "MARKET REGIME: —",
         sub: "Unable to load snapshot.",
