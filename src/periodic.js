@@ -3,6 +3,8 @@ import { getSnapshot, getActiveEvent, getDividends, getEarnings } from "./api.js
 
 const $ = (sel) => document.querySelector(sel);
 
+const DJIA_CANDIDATES = ["DJI", "^DJI", "DJIA", "DIA"];
+
 function fmtMoney(n) {
   const x = Number(n);
   if (!Number.isFinite(x)) return "—";
@@ -151,6 +153,80 @@ function setRegimeBanner({ title, sub, meta, toneClass }) {
     box.classList.remove("evt-red", "evt-orange", "evt-blue", "evt-yellow", "evt-green", "evt-neutral");
     box.classList.add(toneClass || "evt-neutral");
   }
+}
+
+/* ============================================================
+   DJIA QUOTE STRIP
+   ============================================================ */
+
+function findDjiaSnapshot(snap) {
+  for (const sym of DJIA_CANDIDATES) {
+    if (snap?.[sym]) return { symbol: sym, data: snap[sym] };
+  }
+  return null;
+}
+
+function setDjiaQuote(snap) {
+  const lastEl = $("#djiaLast");
+  const chgEl = $("#djiaChange");
+  const pctEl = $("#djiaPct");
+
+  if (!lastEl || !chgEl || !pctEl) return;
+
+  const found = findDjiaSnapshot(snap);
+  if (!found) {
+    lastEl.textContent = "—";
+    chgEl.textContent = "—";
+    pctEl.textContent = "—";
+    chgEl.classList.remove("pos", "neg");
+    pctEl.classList.remove("pos", "neg");
+    return;
+  }
+
+  const q = found.data;
+  const last = Number(q?.last);
+
+  const prev =
+    Number(q?.previous_close) ||
+    Number(q?.meta?.previous_close) ||
+    NaN;
+
+  if (!Number.isFinite(last) || !Number.isFinite(prev) || prev === 0) {
+    lastEl.textContent = "—";
+    chgEl.textContent = "—";
+    pctEl.textContent = "—";
+    chgEl.classList.remove("pos", "neg");
+    pctEl.classList.remove("pos", "neg");
+    return;
+  }
+
+  const chg = last - prev;
+  const pct = chg / prev;
+  const sign = chg >= 0 ? "+" : "";
+
+  lastEl.textContent = fmtMoney(last);
+  chgEl.textContent = `${sign}${fmtMoney(chg)}`;
+  pctEl.textContent = `${sign}${fmtPct(pct)}`;
+
+  chgEl.classList.remove("pos", "neg");
+  pctEl.classList.remove("pos", "neg");
+
+  if (chg > 0) {
+    chgEl.classList.add("pos");
+    pctEl.classList.add("pos");
+  } else if (chg < 0) {
+    chgEl.classList.add("neg");
+    pctEl.classList.add("neg");
+  }
+}
+
+function setAsOfLabels(snap) {
+  const asof = snap?._meta?.asof_local || snap?._meta?.asof_market || "—";
+  const asofMain = $("#asof");
+  const asofToolbar = $("#asofToolbar");
+
+  if (asofMain) asofMain.textContent = asof;
+  if (asofToolbar) asofToolbar.textContent = asof;
 }
 
 /* ============================================================
