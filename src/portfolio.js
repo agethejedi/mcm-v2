@@ -1,4 +1,5 @@
 // src/portfolio.js
+import { getSnapshot } from "./api.js";
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -43,7 +44,8 @@ const state = {
   selectedUserName: "",
   selectedPortfolioId: null,
   selectedPortfolioName: "",
-  selectedPortfolio: null
+  selectedPortfolio: null,
+  quoteRequestId: 0
 };
 
 /* ============================================================
@@ -262,10 +264,31 @@ function renderSummary() {
 }
 
 /* ============================================================
-   SYMBOL RESOLUTION
+   SYMBOL RESOLUTION + LIVE PRICE
    ============================================================ */
 
-function resolveSymbolDisplay() {
+async function autofillLivePrice(sym) {
+  const priceInput = $("#currentPriceInput");
+  if (!priceInput) return;
+
+  const requestId = ++state.quoteRequestId;
+
+  try {
+    const snap = await getSnapshot([sym]);
+    if (requestId !== state.quoteRequestId) return;
+
+    const d = snap?.[sym];
+    const last = Number(d?.last);
+
+    if (Number.isFinite(last) && last > 0) {
+      priceInput.value = last.toFixed(2);
+    }
+  } catch (err) {
+    console.error("quote autofill error", err);
+  }
+}
+
+async function resolveSymbolDisplay() {
   const input = $("#symbolInput");
   const out = $("#symbolResolvedText");
   if (!input || !out) return;
@@ -285,6 +308,7 @@ function resolveSymbolDisplay() {
   }
 
   out.textContent = `${found.name} • ${found.cohort}`;
+  await autofillLivePrice(sym);
 }
 
 /* ============================================================
