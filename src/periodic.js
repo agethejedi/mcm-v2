@@ -2,7 +2,11 @@
 import { getSnapshot, getActiveEvent, getDividends, getEarnings } from "./api.js";
 
 const $ = (sel) => document.querySelector(sel);
-const DJIA_CANDIDATES = ["^DJI", "DJI"];
+const DJIA_CANDIDATES = ["^DJI", "DJI", "DIA"];
+
+/* ============================================================
+   BASIC HELPERS
+   ============================================================ */
 
 function fmtMoney(n) {
   const x = Number(n);
@@ -17,67 +21,53 @@ function fmtPct(n) {
 }
 
 function safeText(s) {
-  return (s === null || s === undefined) ? "" : String(s);
+  return s === null || s === undefined ? "" : String(s);
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }
 
 function isMobile() {
   return window.matchMedia("(max-width: 900px)").matches;
 }
 
-function cohortLabel(key) {
-  const map = {
-    liquidity_leader: "Liquidity Leaders",
-    reflex_bounce: "Reflex / Growth",
-    macro_sensitive: "Macro-Sensitive",
-    cyclicals_industrials: "Cyclicals / Industrials",
-    defensive_yield: "Defensive / Yield",
-    ai_exposure: "AI Exposure",
-    cyclical: "Cyclicals / Industrials",
-    defensive: "Defensive / Yield",
-  };
-  return map[key] || key || "Cohort";
+function getNum(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
 }
 
-function groupByCohort(list) {
-  const out = {};
-  for (const s of list) {
-    const k = s.cohort || s.cohort_key || s.group || "other";
-    if (!out[k]) out[k] = [];
-    out[k].push(s);
-  }
-  return out;
+function getPrevClose(d, snap) {
+  return (
+    getNum(d?.previous_close) ??
+    getNum(d?.meta?.previous_close) ??
+    getNum(snap?._meta?.previous_close) ??
+    null
+  );
 }
 
-function buildDefaultLinks(symbol) {
-  const sym = encodeURIComponent(symbol);
-  const q = encodeURIComponent(`${symbol} investor relations`);
-  return [
-    { label: "Investor Relations (search)", href: `https://www.google.com/search?q=${q}` },
-    { label: "SEC filings (EDGAR)", href: `https://www.sec.gov/edgar/search/#/q=${sym}` },
-    { label: "Yahoo Finance", href: `https://finance.yahoo.com/quote/${sym}` },
-  ];
-}
-
-function renderLinks(el, links) {
-  if (!el) return;
-  el.innerHTML = "";
-  for (const l of links) {
-    const a = document.createElement("a");
-    a.className = "linkItem";
-    a.href = l.href;
-    a.target = "_blank";
-    a.rel = "noreferrer";
-    a.textContent = l.label;
-    el.appendChild(a);
-  }
-}
+/* ============================================================
+   TOOLBAR / HEADER HELPERS
+   ============================================================ */
 
 function setAsOfLabels(snap) {
   const asof = snap?._meta?.asof_local || snap?._meta?.asof_market || "—";
-  $("#asof").textContent = asof;
+
+  const asofMain = $("#asof");
   const asofToolbar = $("#asofToolbar");
+
+  if (asofMain) asofMain.textContent = asof;
   if (asofToolbar) asofToolbar.textContent = asof;
 }
+
+/* ============================================================
+   DJIA QUOTE STRIP
+   ============================================================ */
 
 function setDjiaQuoteFromData(d) {
   const lastEl = $("#djiaLast");
@@ -135,7 +125,10 @@ async function refreshDjiaQuote() {
     try {
       const snap = await getSnapshot([sym]);
       const d = snap?.[sym];
-      if (d && Number.isFinite(Number(d.last))) {
+      const last = Number(d?.last);
+
+      // guard against bogus non-index readings
+      if (d && Number.isFinite(last) && last > 1000) {
         setDjiaQuoteFromData(d);
         return;
       }
@@ -147,9 +140,81 @@ async function refreshDjiaQuote() {
   setDjiaQuoteFromData(null);
 }
 
-/**
- * Updated tile template
- */
+/* ============================================================
+   MARKET NEWS RAIL
+   ============================================================ */
+
+function renderNewsRail(items) {
+  const track = $("#newsRailTrack");
+  if (!track) return;
+
+  if (!Array.isArray(items) || !items.length) {
+    track.innerHTML = `
+      <a class="newsItem muted" href="#" onclick="return false;">
+        No market headlines available.
+      </a>
+    `;
+    return;
+  }
+
+  const markup = items.map((item) => {
+    const headline = escapeHtml(item.headline || "");
+    const url = escapeHtml(item.url || "#");
+    const source = escapeHtml(item.source || "");
+
+    return `
+      <a class="newsItem" href="${url}" target="_blank" rel="noreferrer">
+        <span>${headline}</span>
+        ${source ? `<span class="newsSource">${source}</span>` : ""}
+      </a>
+    `;
+  }).join("");
+
+  // duplicate for seamless ticker effect
+  track.innerHTML = markup + markup;
+}
+
+async function refreshMarketNews() {
+  try {
+    const resp = await fetch("/api/market-news");
+    if (!resp.ok) throw new Error(`News request failed: ${resp.status}`);
+
+    const data = await resp.json();
+    renderNewsRail(data?.items || []);
+  } catch (err) {
+    console.error("market news error", err);
+    renderNewsRail([]);
+  }
+}
+
+/* ============================================================
+   COHORTS / TILE RENDER
+   ============================================================ */
+
+function cohortLabel(key) {
+  const map = {
+    liquidity_leader: "Liquidity Leaders",
+    reflex_bounce: "Reflex / Growth",
+    macro_sensitive: "Macro-Sensitive",
+    cyclicals_industrials: "Cyclicals / Industrials",
+    defensive_yield: "Defensive / Yield",
+    ai_exposure: "AI Exposure",
+    cyclical: "Cyclicals / Industrials",
+    defensive: "Defensive / Yield",
+  };
+  return map[key] || key || "Cohort";
+}
+
+function groupByCohort(list) {
+  const out = {};
+  for (const s of list) {
+    const k = s.cohort || s.cohort_key || s.group || "other";
+    if (!out[k]) out[k] = [];
+    out[k].push(s);
+  }
+  return out;
+}
+
 function tileTemplate(s) {
   return `
     <button class="pTile flat" data-symbol="${s.symbol}" aria-label="${s.symbol} tile">
@@ -212,6 +277,10 @@ function renderCohorts(container, symbols) {
   container.innerHTML = cols.join("");
 }
 
+/* ============================================================
+   EVENT BANNER
+   ============================================================ */
+
 function setRegimeBanner({ title, sub, meta, toneClass }) {
   const t = $("#homeRegimeTitle");
   const s = $("#homeRegimeSub");
@@ -226,24 +295,6 @@ function setRegimeBanner({ title, sub, meta, toneClass }) {
     box.classList.remove("evt-red", "evt-orange", "evt-blue", "evt-yellow", "evt-green", "evt-neutral");
     box.classList.add(toneClass || "evt-neutral");
   }
-}
-
-/* ============================================================
-   EVENT LAYER
-   ============================================================ */
-
-function getNum(v) {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : null;
-}
-
-function getPrevClose(d, snap) {
-  return (
-    getNum(d?.previous_close) ??
-    getNum(d?.meta?.previous_close) ??
-    getNum(snap?._meta?.previous_close) ??
-    null
-  );
 }
 
 function isGreen(d, snap) {
@@ -355,9 +406,37 @@ function detectEvent(symbols, snap) {
   };
 }
 
-/* -------------------------
-   Off-canvas panel helpers
-   ------------------------- */
+/* ============================================================
+   LINK HELPERS
+   ============================================================ */
+
+function buildDefaultLinks(symbol) {
+  const sym = encodeURIComponent(symbol);
+  const q = encodeURIComponent(`${symbol} investor relations`);
+  return [
+    { label: "Investor Relations (search)", href: `https://www.google.com/search?q=${q}` },
+    { label: "SEC filings (EDGAR)", href: `https://www.sec.gov/edgar/search/#/q=${sym}` },
+    { label: "Yahoo Finance", href: `https://finance.yahoo.com/quote/${sym}` },
+  ];
+}
+
+function renderLinks(el, links) {
+  if (!el) return;
+  el.innerHTML = "";
+  for (const l of links) {
+    const a = document.createElement("a");
+    a.className = "linkItem";
+    a.href = l.href;
+    a.target = "_blank";
+    a.rel = "noreferrer";
+    a.textContent = l.label;
+    el.appendChild(a);
+  }
+}
+
+/* ============================================================
+   OFF-CANVAS PANEL
+   ============================================================ */
 
 function ensurePanelOverlay() {
   let overlay = $("#panelOverlay");
@@ -397,9 +476,9 @@ function hideSideCard() {
   if (!isMobile()) closeDesktopPanel();
 }
 
-/* -------------------------
-   Mobile sheet
-   ------------------------- */
+/* ============================================================
+   MOBILE SHEET
+   ============================================================ */
 
 function openSheet(html) {
   const body = $("#sheetBody");
@@ -429,7 +508,7 @@ function cardHtmlFromDom() {
   const ex = safeText($("#cardEx")?.textContent);
   const pay = safeText($("#cardPay")?.textContent);
 
-  const links = Array.from($("#cardLinks")?.querySelectorAll("a") || []).map(a => ({
+  const links = Array.from($("#cardLinks")?.querySelectorAll("a") || []).map((a) => ({
     label: a.textContent,
     href: a.href
   }));
@@ -468,7 +547,7 @@ function cardHtmlFromDom() {
       <div class="sideSection">
         <div class="sideSectionTitle">Links</div>
         <div class="linkList">
-          ${links.map(l => `<a class="linkItem" href="${l.href}" target="_blank" rel="noreferrer">${l.label}</a>`).join("")}
+          ${links.map((l) => `<a class="linkItem" href="${l.href}" target="_blank" rel="noreferrer">${l.label}</a>`).join("")}
         </div>
       </div>
     </div>
@@ -550,6 +629,10 @@ async function populateCompanyCard(symbolsBySym, snap, sym) {
   }
 }
 
+/* ============================================================
+   TILE REFRESH
+   ============================================================ */
+
 async function refreshTiles(symbols, snap) {
   for (const s of symbols) {
     const d = snap?.[s.symbol] || {};
@@ -616,6 +699,10 @@ async function refreshTiles(symbols, snap) {
   }
 }
 
+/* ============================================================
+   WIRING
+   ============================================================ */
+
 function wireCardClose() {
   $("#cardClose")?.addEventListener("click", () => {
     hideSideCard();
@@ -636,21 +723,25 @@ function wireCardClose() {
   });
 }
 
+/* ============================================================
+   BOOT
+   ============================================================ */
+
 async function boot() {
   const cfg = await import("./config.js");
   const SYMBOLS = cfg.DOW30 || cfg.SYMBOLS || cfg.symbols || [];
   const UI_REFRESH_MS = Number(cfg.UI_REFRESH_MS) || 60_000;
 
-  const symbols = SYMBOLS.map(s => ({
+  const symbols = SYMBOLS.map((s) => ({
     symbol: String(s.symbol || "").toUpperCase(),
     name: s.name || s.company || "",
     category: s.category || s.sector || "",
     cohort: s.cohort || s.cohort_key || s.group,
     blurb: s.blurb || s.description || "",
     links: s.links || null,
-  })).filter(s => s.symbol);
+  })).filter((s) => s.symbol);
 
-  const symbolsBySym = Object.fromEntries(symbols.map(s => [s.symbol, s]));
+  const symbolsBySym = Object.fromEntries(symbols.map((s) => [s.symbol, s]));
 
   renderCohorts($("#periodicRow"), symbols);
   wireCardClose();
@@ -664,8 +755,9 @@ async function boot() {
 
   async function refresh() {
     let snap = null;
+
     try {
-      snap = await getSnapshot(symbols.map(s => s.symbol));
+      snap = await getSnapshot(symbols.map((s) => s.symbol));
     } catch {
       setRegimeBanner({
         title: "MARKET REGIME: —",
@@ -678,6 +770,7 @@ async function boot() {
 
     setAsOfLabels(snap);
     await refreshDjiaQuote();
+    await refreshMarketNews();
 
     const evt = detectEvent(symbols, snap);
 
@@ -693,6 +786,7 @@ async function boot() {
     document.querySelectorAll(".pTile").forEach((btn) => {
       if (btn.dataset.wired === "1") return;
       btn.dataset.wired = "1";
+
       btn.addEventListener("click", async () => {
         const sym = btn.getAttribute("data-symbol");
         await populateCompanyCard(symbolsBySym, snap, sym);
