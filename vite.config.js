@@ -6,6 +6,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, "index.html"),
+        portfolio: resolve(__dirname, "portfolio.html"),
         live: resolve(__dirname, "live.html"),
         events: resolve(__dirname, "events.html"),
         performance: resolve(__dirname, "performance.html"),
