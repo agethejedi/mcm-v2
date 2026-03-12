@@ -2,7 +2,7 @@
 import { getSnapshot, getActiveEvent, getDividends, getEarnings } from "./api.js";
 
 const $ = (sel) => document.querySelector(sel);
-const DJIA_CANDIDATES = ["DJI", "^DJI", "DJIA", "DIA"];
+const DJIA_CANDIDATES = ["^DJI", "DJI", ".DJI"];
 
 function fmtMoney(n) {
   const x = Number(n);
