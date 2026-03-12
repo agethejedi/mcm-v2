@@ -105,8 +105,7 @@
                   </div>
 
                   <div class="structureFrame">
-                    <div class="portfolioGrid" style="display:grid;grid-template-columns:minmax(320px,420px) minmax(0,1fr);gap:18px;">
-                      <section class="cardWide">
+                    <div class="portfolioGrid">
                         <div class="cardWideTitle">Portfolio Controls</div>
                         <div class="cardWideSub">Choose a user, select a portfolio, or create a new one. Each user can have up to 3 portfolios.</div>
 
@@ -157,7 +156,7 @@
                             <div class="rowSub" id="symbolResolvedText">Enter a Dow 30 ticker to see name and cohort.</div>
                           </div>
 
-                          <div class="portfolioFormTwoCol" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;">
+                          <div class="portfolioFormTwoCol">
                             <div class="row" style="align-items:flex-start;flex-direction:column;">
                               <label class="small muted" for="sideSelect">Side</label>
                               <select id="sideSelect" style="width:100%;margin-top:8px;background:rgba(12,22,38,.75);border:1px solid rgba(0,255,255,.15);color:rgba(230,241,255,.9);padding:10px 12px;border-radius:12px;">
@@ -198,7 +197,7 @@
                             </div>
                           </div>
 
-                          <div class="portfolioDynamicPrices" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;">
+                          <div class="portfolioDynamicPrices">
                             <div class="row" style="align-items:flex-start;flex-direction:column;">
                               <label class="small muted" for="currentPriceInput">Current Price</label>
                               <input
@@ -289,7 +288,7 @@
                   </div>
 
                   <div class="structureFrame">
-                    <div class="summaryCards" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;">
+                    <div class="summaryCards">
                       <div class="cardWide">
                         <div class="cardWideTitle">Starting Cash</div>
                         <div class="priceBig" id="summaryStartingCash">$—</div>
@@ -353,5 +352,3 @@
     </div>
   </body>
 </html>
-
-
