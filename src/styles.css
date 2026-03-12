@@ -2949,7 +2949,7 @@ box-shadow:
   gap:28px;
   white-space:nowrap;
   padding-left:100%;
-  animation: newsTicker 70s linear infinite;
+  animation: newsTicker 105s linear infinite;
   will-change: transform;
 }
 
