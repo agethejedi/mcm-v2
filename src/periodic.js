@@ -2,6 +2,7 @@
 import { getSnapshot, getActiveEvent, getDividends, getEarnings } from "./api.js";
 
 const $ = (sel) => document.querySelector(sel);
+const DJIA_CANDIDATES = ["DJI", "^DJI", "DJIA", "DIA"];
 
 function fmtMoney(n) {
   const x = Number(n);
@@ -71,9 +72,83 @@ function renderLinks(el, links) {
   }
 }
 
+function setAsOfLabels(snap) {
+  const asof = snap?._meta?.asof_local || snap?._meta?.asof_market || "—";
+  $("#asof").textContent = asof;
+  const asofToolbar = $("#asofToolbar");
+  if (asofToolbar) asofToolbar.textContent = asof;
+}
+
+function setDjiaQuoteFromData(d) {
+  const lastEl = $("#djiaLast");
+  const chgEl = $("#djiaChange");
+  const pctEl = $("#djiaPct");
+
+  if (!lastEl || !chgEl || !pctEl) return;
+
+  if (!d) {
+    lastEl.textContent = "—";
+    chgEl.textContent = "—";
+    pctEl.textContent = "—";
+    chgEl.classList.remove("pos", "neg");
+    pctEl.classList.remove("pos", "neg");
+    return;
+  }
+
+  const last = Number(d?.last);
+  const prev =
+    Number(d?.previous_close) ||
+    Number(d?.meta?.previous_close) ||
+    NaN;
+
+  if (!Number.isFinite(last) || !Number.isFinite(prev) || prev === 0) {
+    lastEl.textContent = "—";
+    chgEl.textContent = "—";
+    pctEl.textContent = "—";
+    chgEl.classList.remove("pos", "neg");
+    pctEl.classList.remove("pos", "neg");
+    return;
+  }
+
+  const chg = last - prev;
+  const pct = chg / prev;
+  const sign = chg >= 0 ? "+" : "";
+
+  lastEl.textContent = fmtMoney(last);
+  chgEl.textContent = `${sign}${fmtMoney(chg)}`;
+  pctEl.textContent = `${sign}${fmtPct(pct)}`;
+
+  chgEl.classList.remove("pos", "neg");
+  pctEl.classList.remove("pos", "neg");
+
+  if (chg > 0) {
+    chgEl.classList.add("pos");
+    pctEl.classList.add("pos");
+  } else if (chg < 0) {
+    chgEl.classList.add("neg");
+    pctEl.classList.add("neg");
+  }
+}
+
+async function refreshDjiaQuote() {
+  for (const sym of DJIA_CANDIDATES) {
+    try {
+      const snap = await getSnapshot([sym]);
+      const d = snap?.[sym];
+      if (d && Number.isFinite(Number(d.last))) {
+        setDjiaQuoteFromData(d);
+        return;
+      }
+    } catch {
+      // try next candidate
+    }
+  }
+
+  setDjiaQuoteFromData(null);
+}
+
 /**
  * Updated tile template
- * Keeps current card shape and cohort columns, but improves internal layout.
  */
 function tileTemplate(s) {
   return `
@@ -475,13 +550,6 @@ async function populateCompanyCard(symbolsBySym, snap, sym) {
   }
 }
 
-/**
- * Updated tile refresh
- * - fills price
- * - fills dollar + percent change separately
- * - sets badge
- * - tints tile green/red/neutral
- */
 async function refreshTiles(symbols, snap) {
   for (const s of symbols) {
     const d = snap?.[s.symbol] || {};
@@ -608,7 +676,8 @@ async function boot() {
       return;
     }
 
-    $("#asof").textContent = snap?._meta?.asof_local || snap?._meta?.asof_market || "—";
+    setAsOfLabels(snap);
+    await refreshDjiaQuote();
 
     const evt = detectEvent(symbols, snap);
 
