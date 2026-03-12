@@ -1,1 +1,355 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>MCM | Portfolio Simulator</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
 
+  <body>
+    <div class="shell">
+      <aside class="rail" aria-label="RiskXLabs rail">
+        <div class="railTop">
+          <div class="burger" aria-label="Menu">☰</div>
+          <div class="railBrand">RiskXLabs</div>
+        </div>
+
+        <nav class="railNav" aria-label="Primary">
+          <button class="railBtn" type="button" title="Periodic Table" onclick="window.location.href='/'">▦</button>
+          <button class="railBtn active" type="button" title="Portfolio">💼</button>
+          <button class="railBtn" type="button" title="Live">⚡</button>
+        </nav>
+      </aside>
+
+      <div class="app">
+        <header class="appHeader">
+          <div class="headerMain">
+            <div class="brand">
+              <div class="logo"></div>
+
+              <div class="brandBlock">
+                <h1>MCM — PORTFOLIO SIMULATOR</h1>
+                <div class="sub">Dow-30-only simulated portfolios with MCM cohort mapping and optional event rationale</div>
+
+                <div class="legendRow" aria-label="Legend">
+                  <span class="legendChip forming"><span class="dot"></span> OPEN ORDER</span>
+                  <span class="legendChip confirmed"><span class="dot"></span> EXECUTED ORDER</span>
+                </div>
+
+                <div class="toolbarRow">
+                  <div class="toolbarLeft">
+                    <span class="toolbarLabel">Environment:</span>
+                    <span>Cloudflare D1</span>
+                  </div>
+
+                  <div class="toolbarCenter">
+                    <span class="universe active">Dow 30 Only</span>
+                    <span class="sep">|</span>
+                    <span class="universe inactive">3 Portfolios Max</span>
+                    <span class="sep">|</span>
+                    <span class="universe inactive">$10,000 Seeded</span>
+                  </div>
+
+                  <div class="toolbarRight">
+                    <a class="mode">Simulated</a>
+                    <a class="mode">Dow Cohorts</a>
+                    <a class="mode">Event Tags</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <nav class="actions" aria-label="Section navigation">
+              <a class="navlink" href="/">Home</a>
+              <a class="navlink active" href="/portfolio.html">Portfolio</a>
+              <a class="navlink" href="/events.html">Events</a>
+              <a class="navlink" href="/performance.html">Performance</a>
+              <a class="navlink" href="/live.html">Live Dashboard</a>
+              <a class="navlink" href="/faq.html">FAQ / Playbook</a>
+            </nav>
+          </div>
+        </header>
+
+        <main class="appMain">
+          <section class="dashboardShell">
+            <div class="dashboardGrid">
+              <section class="primaryColumn">
+                <div class="heroCard">
+                  <div class="periodicSectionHead">
+                    <div class="quoteStrip">
+                      <div class="quoteStripLeft">
+                        <div class="sectionEyebrow">Portfolio Command Center</div>
+                        <div class="djiaQuote">
+                          <span class="djiaLabel">USER</span>
+                          <span class="djiaLast" id="selectedUserName">—</span>
+                          <span class="djiaChange" id="selectedPortfolioName">No portfolio selected</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="metaTop">
+                    <div>User: <span id="metaUser">—</span></div>
+                    <div>Portfolio: <span id="metaPortfolio">—</span></div>
+                    <div class="muted">Trades are simulated and restricted to Dow 30 symbols.</div>
+                  </div>
+                </div>
+
+                <section class="periodicSection">
+                  <div class="periodicSectionHead">
+                    <div>
+                      <div class="sectionEyebrow">Setup</div>
+                      <h2 class="sectionTitle">Portfolio and Order Entry</h2>
+                    </div>
+                  </div>
+
+                  <div class="structureFrame">
+                    <div class="portfolioGrid" style="display:grid;grid-template-columns:minmax(320px,420px) minmax(0,1fr);gap:18px;">
+                      <section class="cardWide">
+                        <div class="cardWideTitle">Portfolio Controls</div>
+                        <div class="cardWideSub">Choose a user, select a portfolio, or create a new one. Each user can have up to 3 portfolios.</div>
+
+                        <div class="list">
+                          <div class="row" style="align-items:flex-start;flex-direction:column;">
+                            <label class="small muted" for="userSelect">User</label>
+                            <select id="userSelect" style="width:100%;margin-top:8px;background:rgba(12,22,38,.75);border:1px solid rgba(0,255,255,.15);color:rgba(230,241,255,.9);padding:10px 12px;border-radius:12px;">
+                              <option value="">Select user…</option>
+                            </select>
+                          </div>
+
+                          <div class="row" style="align-items:flex-start;flex-direction:column;">
+                            <label class="small muted" for="portfolioSelect">Portfolio</label>
+                            <select id="portfolioSelect" style="width:100%;margin-top:8px;background:rgba(12,22,38,.75);border:1px solid rgba(0,255,255,.15);color:rgba(230,241,255,.9);padding:10px 12px;border-radius:12px;">
+                              <option value="">Select portfolio…</option>
+                            </select>
+                          </div>
+
+                          <div class="row" style="align-items:flex-start;flex-direction:column;">
+                            <label class="small muted" for="newPortfolioName">New Portfolio Name</label>
+                            <input
+                              id="newPortfolioName"
+                              type="text"
+                              placeholder="Example: Risk-Off Basket"
+                              style="width:100%;margin-top:8px;background:rgba(12,22,38,.75);border:1px solid rgba(0,255,255,.15);color:rgba(230,241,255,.9);padding:10px 12px;border-radius:12px;"
+                            />
+                            <div class="btnRow" style="width:100%;">
+                              <button class="btn" id="createPortfolioBtn" type="button">Create Portfolio</button>
+                            </div>
+                          </div>
+                        </div>
+                      </section>
+
+                      <section class="cardWide">
+                        <div class="cardWideTitle">Order Entry</div>
+                        <div class="cardWideSub">Dow 30 symbols only. Cohort is auto-assigned by MCM classification.</div>
+
+                        <div class="list">
+                          <div class="row" style="align-items:flex-start;flex-direction:column;">
+                            <label class="small muted" for="symbolInput">Symbol</label>
+                            <input
+                              id="symbolInput"
+                              type="text"
+                              placeholder="AAPL"
+                              maxlength="8"
+                              style="width:100%;margin-top:8px;background:rgba(12,22,38,.75);border:1px solid rgba(0,255,255,.15);color:rgba(230,241,255,.9);padding:10px 12px;border-radius:12px;text-transform:uppercase;"
+                            />
+                            <div class="rowSub" id="symbolResolvedText">Enter a Dow 30 ticker to see name and cohort.</div>
+                          </div>
+
+                          <div class="portfolioFormTwoCol" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;">
+                            <div class="row" style="align-items:flex-start;flex-direction:column;">
+                              <label class="small muted" for="sideSelect">Side</label>
+                              <select id="sideSelect" style="width:100%;margin-top:8px;background:rgba(12,22,38,.75);border:1px solid rgba(0,255,255,.15);color:rgba(230,241,255,.9);padding:10px 12px;border-radius:12px;">
+                                <option value="buy">Buy</option>
+                                <option value="sell">Sell</option>
+                              </select>
+                            </div>
+
+                            <div class="row" style="align-items:flex-start;flex-direction:column;">
+                              <label class="small muted" for="quantityInput">Quantity</label>
+                              <input
+                                id="quantityInput"
+                                type="number"
+                                min="1"
+                                step="1"
+                                placeholder="10"
+                                style="width:100%;margin-top:8px;background:rgba(12,22,38,.75);border:1px solid rgba(0,255,255,.15);color:rgba(230,241,255,.9);padding:10px 12px;border-radius:12px;"
+                              />
+                            </div>
+
+                            <div class="row" style="align-items:flex-start;flex-direction:column;">
+                              <label class="small muted" for="orderTypeSelect">Order Type</label>
+                              <select id="orderTypeSelect" style="width:100%;margin-top:8px;background:rgba(12,22,38,.75);border:1px solid rgba(0,255,255,.15);color:rgba(230,241,255,.9);padding:10px 12px;border-radius:12px;">
+                                <option value="market">Market</option>
+                                <option value="limit">Limit</option>
+                                <option value="stop">Stop</option>
+                                <option value="stop_limit">Stop Limit</option>
+                                <option value="trailing_stop">Trailing Stop</option>
+                              </select>
+                            </div>
+
+                            <div class="row" style="align-items:flex-start;flex-direction:column;">
+                              <label class="small muted" for="timeInForceSelect">Time in Force</label>
+                              <select id="timeInForceSelect" style="width:100%;margin-top:8px;background:rgba(12,22,38,.75);border:1px solid rgba(0,255,255,.15);color:rgba(230,241,255,.9);padding:10px 12px;border-radius:12px;">
+                                <option value="none">None</option>
+                                <option value="gtc">GTC</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div class="portfolioDynamicPrices" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;">
+                            <div class="row" style="align-items:flex-start;flex-direction:column;">
+                              <label class="small muted" for="currentPriceInput">Current Price</label>
+                              <input
+                                id="currentPriceInput"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                placeholder="215.40"
+                                style="width:100%;margin-top:8px;background:rgba(12,22,38,.75);border:1px solid rgba(0,255,255,.15);color:rgba(230,241,255,.9);padding:10px 12px;border-radius:12px;"
+                              />
+                            </div>
+
+                            <div class="row" style="align-items:flex-start;flex-direction:column;">
+                              <label class="small muted" for="limitPriceInput">Limit Price</label>
+                              <input
+                                id="limitPriceInput"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                placeholder="Optional"
+                                style="width:100%;margin-top:8px;background:rgba(12,22,38,.75);border:1px solid rgba(0,255,255,.15);color:rgba(230,241,255,.9);padding:10px 12px;border-radius:12px;"
+                              />
+                            </div>
+
+                            <div class="row" style="align-items:flex-start;flex-direction:column;">
+                              <label class="small muted" for="stopPriceInput">Stop Price</label>
+                              <input
+                                id="stopPriceInput"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                placeholder="Optional"
+                                style="width:100%;margin-top:8px;background:rgba(12,22,38,.75);border:1px solid rgba(0,255,255,.15);color:rgba(230,241,255,.9);padding:10px 12px;border-radius:12px;"
+                              />
+                            </div>
+                          </div>
+
+                          <div class="row" style="align-items:flex-start;flex-direction:column;">
+                            <label class="small muted" for="trailingPercentInput">Trailing Stop %</label>
+                            <input
+                              id="trailingPercentInput"
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              placeholder="Example: 5"
+                              style="width:100%;margin-top:8px;background:rgba(12,22,38,.75);border:1px solid rgba(0,255,255,.15);color:rgba(230,241,255,.9);padding:10px 12px;border-radius:12px;"
+                            />
+                          </div>
+
+                          <div class="row" style="align-items:flex-start;flex-direction:column;">
+                            <label class="small muted" for="eventRationaleSelect">Event Rationale (optional)</label>
+                            <select id="eventRationaleSelect" style="width:100%;margin-top:8px;background:rgba(12,22,38,.75);border:1px solid rgba(0,255,255,.15);color:rgba(230,241,255,.9);padding:10px 12px;border-radius:12px;">
+                              <option value="">None</option>
+                              <option value="Panic / Liquidation">Panic / Liquidation</option>
+                              <option value="Risk-Off Rotation">Risk-Off Rotation</option>
+                              <option value="Macro Repricing">Macro Repricing</option>
+                              <option value="Recovery / Mean Reversion">Recovery / Mean Reversion</option>
+                              <option value="Earnings-Driven">Earnings-Driven</option>
+                              <option value="Other">Other</option>
+                            </select>
+                          </div>
+
+                          <div class="row" style="align-items:flex-start;flex-direction:column;">
+                            <label class="small muted" for="orderNotesInput">Notes (optional)</label>
+                            <textarea
+                              id="orderNotesInput"
+                              rows="3"
+                              placeholder="Optional order notes"
+                              style="width:100%;margin-top:8px;background:rgba(12,22,38,.75);border:1px solid rgba(0,255,255,.15);color:rgba(230,241,255,.9);padding:10px 12px;border-radius:12px;resize:vertical;"
+                            ></textarea>
+                          </div>
+
+                          <div class="btnRow">
+                            <button class="btn" id="submitOrderBtn" type="button">Submit Simulated Order</button>
+                          </div>
+                        </div>
+                      </section>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="periodicSection">
+                  <div class="periodicSectionHead">
+                    <div>
+                      <div class="sectionEyebrow">Summary</div>
+                      <h2 class="sectionTitle">Portfolio Snapshot</h2>
+                    </div>
+                  </div>
+
+                  <div class="structureFrame">
+                    <div class="summaryCards" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;">
+                      <div class="cardWide">
+                        <div class="cardWideTitle">Starting Cash</div>
+                        <div class="priceBig" id="summaryStartingCash">$—</div>
+                      </div>
+                      <div class="cardWide">
+                        <div class="cardWideTitle">Estimated Cash</div>
+                        <div class="priceBig" id="summaryCash">$—</div>
+                      </div>
+                      <div class="cardWide">
+                        <div class="cardWideTitle">Executed Orders</div>
+                        <div class="priceBig" id="summaryExecutedCount">—</div>
+                      </div>
+                      <div class="cardWide">
+                        <div class="cardWideTitle">Open Orders</div>
+                        <div class="priceBig" id="summaryOpenCount">—</div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="periodicSection">
+                  <div class="periodicSectionHead">
+                    <div>
+                      <div class="sectionEyebrow">Ledger</div>
+                      <h2 class="sectionTitle">Order History</h2>
+                    </div>
+                  </div>
+
+                  <div class="structureFrame">
+                    <div class="tableWrap">
+                      <table class="tbl">
+                        <thead>
+                          <tr>
+                            <th>Time</th>
+                            <th>Symbol</th>
+                            <th>Side</th>
+                            <th>Qty</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Executed</th>
+                            <th>Cohort</th>
+                            <th>Event</th>
+                          </tr>
+                        </thead>
+                        <tbody id="ordersTableBody">
+                          <tr>
+                            <td colspan="9" class="empty">Select a user and portfolio to load orders.</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </section>
+              </section>
+            </div>
+          </section>
+        </main>
+
+        <script type="module" src="/src/portfolio.js"></script>
+      </div>
+    </div>
+  </body>
+</html>
