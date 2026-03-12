@@ -27,6 +27,7 @@
           <div class="headerMain">
             <div class="brand">
               <div class="logo"></div>
+
               <div class="brandBlock">
                 <h1>MCM — PERIODIC TABLE OF THE DOW</h1>
                 <div class="sub">Teaching + navigation framework for market behavior (experimental)</div>
@@ -35,32 +36,30 @@
                   <span class="legendChip forming"><span class="dot"></span> SETUP FORMING</span>
                   <span class="legendChip confirmed"><span class="dot"></span> CONFIRMED SETUP</span>
                 </div>
-<!-- Toolbar goes HERE -->
-  <div class="toolbarRow">
 
-    <div class="toolbarLeft">
-      <span class="toolbarLabel">As of:</span>
-      <span id="asofToolbar">—</span>
-    </div>
+                <div class="toolbarRow">
+                  <div class="toolbarLeft">
+                    <span class="toolbarLabel">As of:</span>
+                    <span id="asofToolbar">—</span>
+                  </div>
 
-    <div class="toolbarCenter">
-      <span class="universe active">Dow 30</span>
-      <span class="sep">|</span>
-      <a class="universe inactive">NASDAQ 100</a>
-      <span class="sep">|</span>
-      <a class="universe inactive">S&P 500</a>
-    </div>
+                  <div class="toolbarCenter">
+                    <span class="universe active">Dow 30</span>
+                    <span class="sep">|</span>
+                    <a class="universe inactive">NASDAQ 100</a>
+                    <span class="sep">|</span>
+                    <a class="universe inactive">S&P 500</a>
+                  </div>
 
-    <div class="toolbarRight">
-      <a class="mode">Performance</a>
-      <a class="mode">Periodicity</a>
-      <a class="mode">Regime Outcomes</a>
-    </div>
-
+                  <div class="toolbarRight">
+                    <a class="mode">Performance</a>
+                    <a class="mode">Periodicity</a>
+                    <a class="mode">Regime Outcomes</a>
+                  </div>
+                </div>
               </div>
             </div>
 
-            
             <nav class="actions" aria-label="Section navigation">
               <a class="navlink active" href="/">Home</a>
               <a class="navlink" href="/events.html">Events</a>
@@ -87,37 +86,31 @@
                         <div class="regime-right" id="homeRegimeMeta">—</div>
                       </div>
 
-<div class="regimeSpectrum">
+                      <div class="regimeSpectrum">
+                        <div class="regimeSpectrumHead">
+                          <div class="regimeSpectrumTitle">Regime Spectrum</div>
+                          <div class="regimeSpectrumMeta">Behavioral posture</div>
+                        </div>
 
-  <div class="regimeSpectrumHead">
-    <div class="regimeSpectrumTitle">Regime Spectrum</div>
-    <div class="regimeSpectrumMeta">Behavioral posture</div>
-  </div>
+                        <div class="spectrumBar">
+                          <div class="spectrumGradient"></div>
 
-  <div class="spectrumBar">
+                          <div class="spectrumIndicator riskoff"></div>
 
-    <div class="spectrumGradient"></div>
+                          <div class="spectrumLabels">
+                            <span class="labelOff">RISK-OFF</span>
+                            <span class="labelMid">TRANSITION</span>
+                            <span class="labelOn">RISK-ON</span>
+                          </div>
+                        </div>
 
-    <!-- indicator -->
-    <div class="spectrumIndicator riskoff"></div>
+                        <div class="spectrumDescriptors">
+                          <span>Defensive leadership</span>
+                          <span>Rotation / caution</span>
+                          <span>Broad participation</span>
+                        </div>
+                      </div>
 
-    <!-- labels -->
-    <div class="spectrumLabels">
-      <span class="labelOff">RISK-OFF</span>
-      <span class="labelMid">TRANSITION</span>
-      <span class="labelOn">RISK-ON</span>
-    </div>
-
-  </div>
-
-  <div class="spectrumDescriptors">
-    <span>Defensive leadership</span>
-    <span>Rotation / caution</span>
-    <span>Broad participation</span>
-  </div>
-
-</div>
-                      
                       <div class="metaTop">
                         <div>Universe: <span id="universeLabel">Dow 30</span></div>
                         <div>Data as-of: <span id="asof">—</span></div>
@@ -174,23 +167,26 @@
 
                 <section class="periodicSection">
                   <div class="periodicSectionHead">
-                    <div>
-                      <div class="sectionEyebrow">RiskXLabs</div>
-                      <h2 class="sectionTitle">Periodic Table of the Dow 30</h2>
+                    <div class="quoteStrip">
+                      <div class="quoteStripLeft">
+                        <div class="sectionEyebrow">RiskXLabs</div>
+                        <div class="djiaQuote">
+                          <span class="djiaLabel">DJIA</span>
+                          <span class="djiaLast" id="djiaLast">—</span>
+                          <span class="djiaChange" id="djiaChange">—</span>
+                          <span class="djiaPct" id="djiaPct">—</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
                   <div class="structureFrame">
+                    <div class="structureHeader">
+                      <div class="structureLabel">MARKET STRUCTURE</div>
+                      <div class="structureTitle">Dow Cohort Map</div>
+                    </div>
 
-  <div class="structureHeader">
-    <div class="structureLabel">MARKET STRUCTURE</div>
-    <div class="structureTitle">Dow Cohort Map</div>
-  </div>
-
-  <div class="periodicRow" id="periodicRow"></div>
-
-</div>
-                    <!-- Cohort columns injected here -->
+                    <div class="periodicRow" id="periodicRow"></div>
                   </div>
                 </section>
               </section>
