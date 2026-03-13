@@ -341,9 +341,9 @@ function countGreen(list, snap) {
 }
 
 function detectEvent(symbols, snap) {
-  const LEADERS = ["MSFT", "AAPL"];
+  const LEADERS = ["MSFT", "AAPL", "NVDA", "V"];
   const DEFENSIVES = ["PG", "KO", "JNJ", "MRK", "MCD", "VZ", "TRV", "CSCO", "WMT", "UNH", "AMGN"];
-  const CYCLICALS = ["CAT", "HD", "BA", "DOW", "MMM", "HON", "DIS", "CVX"];
+  const CYCLICALS = ["CAT", "HD", "BA", "MMM", "HON", "DIS", "CVX", "SHW", "AMZN"];
   const FINANCIALS = ["JPM", "GS", "AXP", "V"];
 
   const b = computeBreadth(symbols, snap);
