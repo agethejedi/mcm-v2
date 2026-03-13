@@ -469,7 +469,7 @@ function closeDesktopPanel() {
     overlay.classList.remove("show");
     overlay.classList.add("hidden");
   }
-
+}
 
 function showSideCard() {
   $("#sideEmpty")?.classList.add("hidden");
