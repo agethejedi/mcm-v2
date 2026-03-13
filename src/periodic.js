@@ -452,17 +452,24 @@ function ensurePanelOverlay() {
 function openDesktopPanel() {
   const panel = $("#sidePanel");
   if (!panel) return;
+
   panel.classList.add("open");
+
   const overlay = ensurePanelOverlay();
   overlay.classList.remove("hidden");
+  overlay.classList.add("show");
 }
 
 function closeDesktopPanel() {
   const panel = $("#sidePanel");
   if (panel) panel.classList.remove("open");
+
   const overlay = $("#panelOverlay");
-  if (overlay) overlay.classList.add("hidden");
-}
+  if (overlay) {
+    overlay.classList.remove("show");
+    overlay.classList.add("hidden");
+  }
+
 
 function showSideCard() {
   $("#sideEmpty")?.classList.add("hidden");
