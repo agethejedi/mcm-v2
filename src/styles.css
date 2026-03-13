@@ -629,7 +629,7 @@ h1{
   background: linear-gradient(180deg, rgba(6,16,28,.96), rgba(4,12,20,.98));
   backdrop-filter: blur(14px);
   box-shadow: -18px 0 50px rgba(0,0,0,.55), -4px 0 14px rgba(72,255,238,.08);
-  z-index: 2000;
+  z-index: 10001;   /* raise above overlay */
   transform: translateX(110%);
   transition: transform 280ms cubic-bezier(.2,.8,.2,1);
   overflow: auto;
