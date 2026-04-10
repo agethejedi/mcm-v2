@@ -7,82 +7,64 @@ export async function onRequestGet(ctx) {
   const { searchParams } = new URL(ctx.request.url);
   const symbol = (searchParams.get("symbol") || "").toUpperCase().trim();
 
-  if (!symbol) {
-    return json({ error: "symbol required" }, 400);
-  }
+  if (!symbol) return json({ error: "symbol required" }, 400);
 
   const apiKey = ctx.env.TWELVE_DATA_API_KEY;
-  if (!apiKey) {
-    return json({ error: "TWELVE_DATA_API_KEY not configured" }, 500);
-  }
+  if (!apiKey) return json({ error: "TWELVE_DATA_API_KEY not configured" }, 500);
 
-  // Check KV cache first (cache for 6 hours)
-  const cacheKey = `fundamentals:stats:${symbol}`;
+  // Check KV cache first (6 hour TTL)
+  const cacheKey = `fundamentals:stats:v2:${symbol}`;
   try {
     const cached = await ctx.env.MCM_KV.get(cacheKey, "json");
-    if (cached) {
-      return json({ ...cached, _cached: true });
-    }
+    if (cached) return json({ ...cached, _cached: true });
   } catch {}
 
-  // Fetch from TwelveData — statistics endpoint
-  const statsUrl = `https://api.twelvedata.com/statistics?symbol=${symbol}&apikey=${apiKey}`;
-  const profileUrl = `https://api.twelvedata.com/profile?symbol=${symbol}&apikey=${apiKey}`;
-  const quoteUrl = `https://api.twelvedata.com/quote?symbol=${symbol}&apikey=${apiKey}`;
+  const base = `https://api.twelvedata.com`;
+  const key  = `apikey=${apiKey}`;
 
   try {
-    const [statsRes, profileRes, quoteRes] = await Promise.all([
-      fetch(statsUrl),
-      fetch(profileUrl),
-      fetch(quoteUrl),
+    const [statsRes, profileRes, incomeRes, quoteRes] = await Promise.all([
+      fetch(`${base}/statistics?symbol=${symbol}&${key}`),
+      fetch(`${base}/profile?symbol=${symbol}&${key}`),
+      fetch(`${base}/income_statement?symbol=${symbol}&period=annual&${key}`),
+      fetch(`${base}/quote?symbol=${symbol}&${key}`),
     ]);
 
-    const [stats, profile, quote] = await Promise.all([
+    const [stats, profile, income, quote] = await Promise.all([
       statsRes.json(),
       profileRes.json(),
+      incomeRes.json(),
       quoteRes.json(),
     ]);
 
-    // Extract the fields we want
-    const vs = stats?.statistics?.valuations_metrics || {};
-    const fs = stats?.statistics?.financials || {};
-    const sk = stats?.statistics?.stock_statistics || {};
+    const val = stats?.statistics?.valuations_metrics || {};
+    const sk  = stats?.statistics?.stock_statistics  || {};
+
+    // Revenue from most recent annual income statement
+    const incomeData = Array.isArray(income?.income_statement)
+      ? income.income_statement[0]
+      : null;
 
     const result = {
       symbol,
-
-      // Valuation
-      pe:         safeNum(vs.trailing_pe)        ?? safeNum(quote?.pe),
-      eps:        safeNum(vs.diluted_eps_ttm)     ?? null,
-      market_cap: safeNum(vs.market_capitalization) ?? null,
-
-      // Price range
-      week_52_high: safeNum(sk["52_week_high"])  ?? safeNum(quote?.fifty_two_week?.high),
-      week_52_low:  safeNum(sk["52_week_low"])   ?? safeNum(quote?.fifty_two_week?.low),
-
-      // Risk
-      beta: safeNum(sk.beta) ?? null,
-
-      // Revenue
-      revenue: safeNum(fs.total_revenue) ?? null,
-
-      // Yield — from quote
-      dividend_yield: safeNum(quote?.dividend_yield) ?? null,
-
-      // Company info from profile
-      sector:       profile?.sector       || null,
-      industry:     profile?.industry     || null,
-      employees:    profile?.employees    || null,
-      website:      profile?.website      || null,
-      exchange:     profile?.exchange     || null,
-      description:  profile?.description  || null,
+      pe:           safeNum(val?.trailing_pe)        ?? safeNum(quote?.pe)              ?? null,
+      eps:          safeNum(val?.diluted_eps_ttm)     ?? safeNum(quote?.eps)             ?? null,
+      market_cap:   safeNum(val?.market_capitalization) ?? safeNum(profile?.market_cap)  ?? null,
+      week_52_high: safeNum(sk?.["52_week_high"])     ?? safeNum(quote?.fifty_two_week?.high) ?? null,
+      week_52_low:  safeNum(sk?.["52_week_low"])      ?? safeNum(quote?.fifty_two_week?.low)  ?? null,
+      beta:         safeNum(sk?.beta)                 ?? safeNum(quote?.beta)            ?? null,
+      revenue:      safeNum(incomeData?.total_revenue) ?? safeNum(incomeData?.revenue)   ?? null,
+      dividend_yield: safeNum(quote?.dividend_yield)  ?? safeNum(val?.forward_dividend_yield) ?? null,
+      sector:       profile?.sector      || null,
+      industry:     profile?.industry    || null,
+      employees:    profile?.employees   || null,
+      website:      profile?.website     || null,
+      description:  profile?.description || null,
     };
 
-    // Cache for 6 hours (21600 seconds)
+    // Cache 6 hours
     try {
-      await ctx.env.MCM_KV.put(cacheKey, JSON.stringify(result), {
-        expirationTtl: 21600,
-      });
+      await ctx.env.MCM_KV.put(cacheKey, JSON.stringify(result), { expirationTtl: 21600 });
     } catch {}
 
     return json(result);
