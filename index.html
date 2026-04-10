@@ -4,7 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>MCM | Periodic Table of the Dow</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/src/styles.css" />
+    <link rel="stylesheet" href="/src/mobile.css" />
   </head>
 
   <body>
@@ -16,10 +18,10 @@
         </div>
 
         <nav class="railNav" aria-label="Primary">
-  <button class="railBtn active" type="button" title="Periodic Table" onclick="window.location.href='/'">▦</button>
-  <button class="railBtn" type="button" title="Portfolio" onclick="window.location.href='/portfolio.html'">⚡</button>
-  <button class="railBtn" type="button" title="Stats">▤</button>
-</nav>
+          <button class="railBtn active" type="button" title="Periodic Table" onclick="window.location.href='/'">▦</button>
+          <button class="railBtn" type="button" title="Portfolio" onclick="window.location.href='/portfolio.html'">⚡</button>
+          <button class="railBtn" type="button" title="Stats">▤</button>
+        </nav>
       </aside>
 
       <div class="app">
@@ -94,9 +96,7 @@
 
                         <div class="spectrumBar">
                           <div class="spectrumGradient"></div>
-
                           <div class="spectrumIndicator riskoff"></div>
-
                           <div class="spectrumLabels">
                             <span class="labelOff">RISK-OFF</span>
                             <span class="labelMid">TRANSITION</span>
@@ -167,26 +167,26 @@
 
                 <section class="periodicSection">
                   <div class="periodicSectionHead">
-  <div class="quoteStrip quoteStripNews">
-    <div class="quoteStripLeft">
-      <div class="sectionEyebrow">RiskXLabs</div>
-      <div class="djiaQuote">
-        <span class="djiaLabel">DJIA</span>
-        <span class="djiaLast" id="djiaLast">—</span>
-        <span class="djiaChange" id="djiaChange">—</span>
-        <span class="djiaPct" id="djiaPct">—</span>
-      </div>
-    </div>
+                    <div class="quoteStrip quoteStripNews">
+                      <div class="quoteStripLeft">
+                        <div class="sectionEyebrow">RiskXLabs</div>
+                        <div class="djiaQuote">
+                          <span class="djiaLabel">DJIA</span>
+                          <span class="djiaLast" id="djiaLast">—</span>
+                          <span class="djiaChange" id="djiaChange">—</span>
+                          <span class="djiaPct" id="djiaPct">—</span>
+                        </div>
+                      </div>
 
-    <div class="newsRail" aria-label="Market headlines">
-      <div class="newsRailViewport">
-        <div class="newsRailTrack" id="newsRailTrack">
-          <a class="newsItem muted" href="#" onclick="return false;">Loading market headlines…</a>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+                      <div class="newsRail" aria-label="Market headlines">
+                        <div class="newsRailViewport">
+                          <div class="newsRailTrack" id="newsRailTrack">
+                            <a class="newsItem muted" href="#" onclick="return false;">Loading market headlines…</a>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
                   <div class="structureFrame">
                     <div class="structureHeader">
@@ -216,7 +216,7 @@
               <p><strong>Cohorts:</strong> Tiles are grouped by behavior. Watch which cohort turns green first.</p>
               <p><strong>Setups:</strong> When Event + Regime + Cohort align, we flag teachable patterns — not recommendations.</p>
 
-              <label class="dontShow"><input type="checkbox" id="dontShow" /> Don’t show this again</label>
+              <label class="dontShow"><input type="checkbox" id="dontShow" /> Don't show this again</label>
               <div class="onboardBtns">
                 <button class="btn" id="onboardOk">Got it</button>
               </div>
@@ -230,5 +230,3 @@
     </div>
   </body>
 </html>
-
-
