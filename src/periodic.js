@@ -1,5 +1,5 @@
 // src/periodic.js
-import { getSnapshot, getActiveEvent, getDividends, getEarnings, getFundamentals, getCompanyBlurb } from "./api.js";
+import { getSnapshot, getActiveEvent, getDividends, getEarnings, getFundamentals } from "./api.js";
 
 const $ = (sel) => document.querySelector(sel);
 const DJIA_CANDIDATES = [".DJI", "^DJI", "DJI"];
@@ -1263,22 +1263,21 @@ function mobOpenDetail(sym, snap) {
   // Show detail screen immediately
   mobShowScreen("detail");
 
-  // Async: fetch blurb + fundamentals in parallel
+  // Async: fetch fundamentals (description comes from TwelveData profile)
   Promise.allSettled([
-    getCompanyBlurb(sym, s?.name || sym),
     getFundamentals(sym),
-  ]).then(([blurbResult, statsResult]) => {
+  ]).then(([statsResult]) => {
 
-    // Blurb
-    if (blurbResult.status === "fulfilled" && blurbResult.value?.blurb) {
-      setText("mobDetAbout", blurbResult.value.blurb);
-    } else {
-      setText("mobDetAbout", s?.blurb || s?.category || "—");
-    }
-
-    // Fundamentals
+    // Fundamentals + description
     if (statsResult.status === "fulfilled") {
       const f = statsResult.value;
+
+      // Use TwelveData description — no OpenAI needed
+      if (f.description) {
+        setText("mobDetAbout", f.description);
+      } else {
+        setText("mobDetAbout", s?.blurb || s?.category || "—");
+      }
 
       const fmtLarge = (n) => {
         if (!Number.isFinite(n)) return "—";
@@ -1300,6 +1299,8 @@ function mobOpenDetail(sym, snap) {
       updateStatRow("mobStatRevenue",   fmtLarge(f.revenue));
       updateStatRow("mobStatYield",     Number.isFinite(f.dividend_yield)
         ? fmtVal(f.dividend_yield * 100, "", "%") : "—");
+    } else {
+      setText("mobDetAbout", s?.blurb || s?.category || "—");
     }
   });
 }
