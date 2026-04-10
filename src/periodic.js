@@ -1,5 +1,4 @@
 // src/periodic.js
-import "./mobile.css";
 import { getSnapshot, getActiveEvent, getDividends, getEarnings } from "./api.js";
 
 const $ = (sel) => document.querySelector(sel);
@@ -35,7 +34,7 @@ function escapeHtml(str) {
 }
 
 function isMobile() {
-  return window.matchMedia("(max-width: 900px)").matches;
+  return true; // Mobile periodic table layout is now the default on all viewports
 }
 
 function getNum(v) {
@@ -1254,10 +1253,8 @@ async function boot() {
   renderCohorts($("#periodicRow"), symbols);
   wireCardClose();
 
-  // Mobile shell — inject once
-  if (isMobile()) {
-    injectMobileShell(symbols);
-  }
+  // Always inject mobile shell — it is now the primary UI
+  injectMobileShell(symbols);
 
   try {
     const active = await getActiveEvent();
@@ -1291,11 +1288,9 @@ async function boot() {
 
     await refreshTiles(symbols, snap);
 
-    // Refresh mobile view with same data — no extra API calls
-    if (isMobile()) {
-      if (!$("#mobView")) injectMobileShell(symbols);
-      refreshMobileView(symbols, snap, evt);
-    }
+    // Always refresh mobile view — it is the primary UI
+    if (!$("#mobView")) injectMobileShell(symbols);
+    refreshMobileView(symbols, snap, evt);
 
     document.querySelectorAll(".pTile").forEach((btn) => {
       if (btn.dataset.wired === "1") return;
@@ -1312,5 +1307,3 @@ async function boot() {
 }
 
 boot();
-
-
