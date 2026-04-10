@@ -856,20 +856,44 @@
    ========================================================= */
 
 @media (min-width: 901px) {
+  /* Fix the view container so it scrolls naturally */
   .mob-view {
     font-size: 14px;
+    position: relative;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
+  /* Screens become normal block flow, centered, max 900px wide */
   .mob-screen {
-    max-width: 1200px;
+    position: relative;
+    inset: auto;
+    max-width: 900px;
+    width: 100%;
     margin: 0 auto;
+    left: auto;
+    transform: none;
+    padding-bottom: 100px;
+    overflow: visible;
+  }
+
+  .mob-screen.active {
+    display: block;
+  }
+
+  /* Tab bar stays fixed but centered */
+  .mob-tab-bar {
+    max-width: 900px;
     left: 50%;
     transform: translateX(-50%);
     width: 100%;
   }
 
+  /* Larger sizing for desktop */
   .mob-table-header {
     padding: 24px 24px 16px;
+    position: sticky;
+    top: 0;
   }
 
   .mob-main-title {
@@ -949,13 +973,6 @@
     font-size: 10px;
   }
 
-  .mob-tab-bar {
-    max-width: 1200px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
-  }
-
   .mob-tab-icon {
     font-size: 24px;
   }
@@ -998,5 +1015,25 @@
 
   .mob-legend-item span {
     font-size: 10px !important;
+  }
+}
+
+/* Landscape phone fix */
+@media (max-height: 500px) and (orientation: landscape) {
+  .mob-view {
+    position: relative;
+    overflow-y: auto;
+  }
+
+  .mob-screen {
+    position: relative;
+    inset: auto;
+    padding-bottom: 80px;
+    overflow: visible;
+  }
+
+  .mob-table-header {
+    position: relative;
+    top: auto;
   }
 }
