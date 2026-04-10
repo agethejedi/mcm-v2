@@ -1037,3 +1037,29 @@
     top: auto;
   }
 }
+
+/* =========================================================
+   QUICK STATS SECTION
+   ========================================================= */
+
+.mob-stats-head {
+  font-size: 9px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--mob-text3);
+  padding: 10px 12px 6px;
+  border-bottom: 1px solid var(--mob-border);
+  font-family: 'Share Tech Mono', ui-monospace, monospace;
+}
+
+/* Loading shimmer for async values */
+@keyframes mob-shimmer {
+  0%   { opacity: .4; }
+  50%  { opacity: .8; }
+  100% { opacity: .4; }
+}
+
+.mob-el-data-val:not(:empty):contains("…") {
+  animation: mob-shimmer 1.2s ease-in-out infinite;
+  color: var(--mob-text3);
+}
