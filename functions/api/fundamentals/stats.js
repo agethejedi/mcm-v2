@@ -1,7 +1,7 @@
 // functions/api/fundamentals/stats.js
-// Fetches P/E, EPS, Market Cap, 52-week high/low, Beta, Revenue, Yield
-// from TwelveData for a given symbol.
-// Usage: GET /api/fundamentals/stats?symbol=AAPL
+// Primary source: /quote (reliable across all Dow 30 on Grow plan)
+// Secondary: /profile for description, sector, industry
+// Usage: GET /api/fundamentals/stats?symbol=JNJ
 
 export async function onRequestGet(ctx) {
   const { searchParams } = new URL(ctx.request.url);
@@ -12,65 +12,60 @@ export async function onRequestGet(ctx) {
   const apiKey = ctx.env.TWELVE_DATA_API_KEY;
   if (!apiKey) return json({ error: "TWELVE_DATA_API_KEY not configured" }, 500);
 
-  // Check KV cache first (6 hour TTL)
-  const cacheKey = `fundamentals:stats:v2:${symbol}`;
+  // KV cache — 6 hours
+  const cacheKey = `fundamentals:stats:v3:${symbol}`;
   try {
     const cached = await ctx.env.MCM_KV.get(cacheKey, "json");
     if (cached) return json({ ...cached, _cached: true });
   } catch {}
 
   const base = `https://api.twelvedata.com`;
-  const key  = `apikey=${apiKey}`;
+  const k    = `apikey=${apiKey}`;
 
   try {
-    const [statsRes, profileRes, incomeRes, quoteRes] = await Promise.all([
-      fetch(`${base}/statistics?symbol=${symbol}&${key}`),
-      fetch(`${base}/profile?symbol=${symbol}&${key}`),
-      fetch(`${base}/income_statement?symbol=${symbol}&period=annual&${key}`),
-      fetch(`${base}/quote?symbol=${symbol}&${key}`),
+    // quote is the most reliable endpoint across all plan tiers
+    // profile gives us description + sector + industry
+    const [quoteRes, profileRes] = await Promise.all([
+      fetch(`${base}/quote?symbol=${symbol}&${k}`),
+      fetch(`${base}/profile?symbol=${symbol}&${k}`),
     ]);
 
-    const [stats, profile, income, quote] = await Promise.all([
-      statsRes.json(),
-      profileRes.json(),
-      incomeRes.json(),
+    const [quote, profile] = await Promise.all([
       quoteRes.json(),
+      profileRes.json(),
     ]);
 
-    const val = stats?.statistics?.valuations_metrics || {};
-    const sk  = stats?.statistics?.stock_statistics  || {};
-
-    // Revenue from most recent annual income statement
-    const incomeData = Array.isArray(income?.income_statement)
-      ? income.income_statement[0]
-      : null;
+    // quote fields — these are reliable on Grow plan
+    const fw = quote?.fifty_two_week || {};
 
     const result = {
       symbol,
-      pe:           safeNum(val?.trailing_pe)        ?? safeNum(quote?.pe)              ?? null,
-      eps:          safeNum(val?.diluted_eps_ttm)     ?? safeNum(quote?.eps)             ?? null,
-      market_cap:   safeNum(val?.market_capitalization) ?? safeNum(profile?.market_cap)  ?? null,
-      week_52_high: safeNum(sk?.["52_week_high"])     ?? safeNum(quote?.fifty_two_week?.high) ?? null,
-      week_52_low:  safeNum(sk?.["52_week_low"])      ?? safeNum(quote?.fifty_two_week?.low)  ?? null,
-      beta:         safeNum(sk?.beta)                 ?? safeNum(quote?.beta)            ?? null,
-      revenue:      safeNum(incomeData?.total_revenue) ?? safeNum(incomeData?.revenue)   ?? null,
-      dividend_yield: safeNum(quote?.dividend_yield)  ?? safeNum(val?.forward_dividend_yield) ?? null,
-      sector:       profile?.sector      || null,
-      industry:     profile?.industry    || null,
-      employees:    profile?.employees   || null,
-      website:      profile?.website     || null,
-      description:  profile?.description || null,
+      pe:             safeNum(quote?.pe)               ?? null,
+      eps:            safeNum(quote?.eps)              ?? null,
+      market_cap:     safeNum(quote?.market_cap)       ?? null,
+      week_52_high:   safeNum(fw.high)                 ?? null,
+      week_52_low:    safeNum(fw.low)                  ?? null,
+      beta:           safeNum(quote?.beta)             ?? null,
+      revenue:        null, // not in quote; extracted from description text
+      dividend_yield: safeNum(quote?.dividend_yield)   ?? null,
+      sector:         profile?.sector                  || quote?.sector   || null,
+      industry:       profile?.industry                || null,
+      employees:      safeNum(profile?.employees)      || null,
+      website:        profile?.website                 || null,
+      description:    profile?.description             || null,
     };
 
     // Cache 6 hours
     try {
-      await ctx.env.MCM_KV.put(cacheKey, JSON.stringify(result), { expirationTtl: 21600 });
+      await ctx.env.MCM_KV.put(cacheKey, JSON.stringify(result), {
+        expirationTtl: 21600,
+      });
     } catch {}
 
     return json(result);
 
   } catch (err) {
-    return json({ error: "TwelveData fetch failed", detail: String(err) }, 502);
+    return json({ error: "fetch failed", detail: String(err) }, 502);
   }
 }
 
