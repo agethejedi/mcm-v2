@@ -1,4 +1,5 @@
 // src/periodic.js
+import "./mobile.css";
 import { getSnapshot, getActiveEvent, getDividends, getEarnings } from "./api.js";
 
 const $ = (sel) => document.querySelector(sel);
