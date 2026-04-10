@@ -1,5 +1,5 @@
 // src/periodic.js
-import { getSnapshot, getActiveEvent, getDividends, getEarnings } from "./api.js";
+import { getSnapshot, getActiveEvent, getDividends, getEarnings, getFundamentals, getCompanyBlurb } from "./api.js";
 
 const $ = (sel) => document.querySelector(sel);
 const DJIA_CANDIDATES = [".DJI", "^DJI", "DJI"];
@@ -880,6 +880,10 @@ function injectMobileShell(symbols) {
           <div class="mob-el-data-val" id="mobDetPct">—</div>
         </div>
         <div class="mob-el-data-row">
+          <div class="mob-el-data-label">Signal</div>
+          <div class="mob-el-data-val" id="mobDetSignal">—</div>
+        </div>
+        <div class="mob-el-data-row">
           <div class="mob-el-data-label">Cohort</div>
           <div class="mob-el-data-val" id="mobDetCohortVal">—</div>
         </div>
@@ -887,9 +891,41 @@ function injectMobileShell(symbols) {
           <div class="mob-el-data-label">Category</div>
           <div class="mob-el-data-sub" id="mobDetCategory">—</div>
         </div>
+      </div>
+
+      <div class="mob-el-data-table" id="mobStatsSection">
+        <div class="mob-stats-head">Quick Stats</div>
         <div class="mob-el-data-row">
-          <div class="mob-el-data-label">Signal</div>
-          <div class="mob-el-data-val" id="mobDetSignal">—</div>
+          <div class="mob-el-data-label">P/E Ratio</div>
+          <div class="mob-el-data-val" id="mobStatPE">—</div>
+        </div>
+        <div class="mob-el-data-row">
+          <div class="mob-el-data-label">EPS (TTM)</div>
+          <div class="mob-el-data-val" id="mobStatEPS">—</div>
+        </div>
+        <div class="mob-el-data-row">
+          <div class="mob-el-data-label">Mkt Cap</div>
+          <div class="mob-el-data-val" id="mobStatMarketCap">—</div>
+        </div>
+        <div class="mob-el-data-row">
+          <div class="mob-el-data-label">52W High</div>
+          <div class="mob-el-data-val" id="mobStat52High">—</div>
+        </div>
+        <div class="mob-el-data-row">
+          <div class="mob-el-data-label">52W Low</div>
+          <div class="mob-el-data-val" id="mobStat52Low">—</div>
+        </div>
+        <div class="mob-el-data-row">
+          <div class="mob-el-data-label">Beta</div>
+          <div class="mob-el-data-val" id="mobStatBeta">—</div>
+        </div>
+        <div class="mob-el-data-row">
+          <div class="mob-el-data-label">Revenue</div>
+          <div class="mob-el-data-val" id="mobStatRevenue">—</div>
+        </div>
+        <div class="mob-el-data-row">
+          <div class="mob-el-data-label">Div Yield</div>
+          <div class="mob-el-data-val" id="mobStatYield">—</div>
         </div>
       </div>
 
@@ -1130,7 +1166,6 @@ function mobRenderEventCard(evt, snap, symbols) {
 }
 
 function mobOpenDetail(sym, snap) {
-  // We store snap on window so detail can always access it
   const currentSnap = snap || window.__mobSnap;
   const symbolsBySym = window.__mobSymbolsBySym || {};
   const s = symbolsBySym[sym];
@@ -1199,23 +1234,79 @@ function mobOpenDetail(sym, snap) {
     signalEl.className = `mob-el-data-val mob-signal-${signal}`;
   }
 
-  setText("mobDetAbout", s?.blurb || s?.category || "—");
+  // Placeholder while async loads
+  setText("mobDetAbout", "Loading…");
+  updateStatRow("mobStatPE",        "…");
+  updateStatRow("mobStatEPS",       "…");
+  updateStatRow("mobStatMarketCap", "…");
+  updateStatRow("mobStat52High",    "…");
+  updateStatRow("mobStat52Low",     "…");
+  updateStatRow("mobStatBeta",      "…");
+  updateStatRow("mobStatRevenue",   "…");
+  updateStatRow("mobStatYield",     "…");
 
   const sigBox = $("#mobSignalBox");
   if (sigBox) sigBox.className = `mob-signal-box mob-signal-box-${signal}`;
-
   setText("mobSignalTitle",
     signal === "confirmed" ? "⚡ MCM Signal — Confirmed" :
-    signal === "down" ? "⚠ MCM Signal — No Confirmation" :
-    "◎ MCM Signal — Setup Forming"
+    signal === "down"      ? "⚠ MCM Signal — No Confirmation" :
+                             "◎ MCM Signal — Setup Forming"
   );
-
   const sigText = hasData
-    ? `${sym} is ${chg >= 0 ? "up" : "down"} ${mobFmtPct(pct)}${signal === "confirmed" ? " with RTH reversal confirmed. " + meta.label + " cohort participation confirmed." : signal === "down" ? ". No reversal confirmation yet. Watch for reclaim of intraday baseline." : ". Setup forming — reversal not yet confirmed in RTH session."}`
+    ? `${sym} is ${chg >= 0 ? "up" : "down"} ${mobFmtPct(pct)}${
+        signal === "confirmed" ? " with RTH reversal confirmed. " + meta.label + " cohort participation confirmed."
+      : signal === "down"     ? ". No reversal confirmation yet. Watch for reclaim of intraday baseline."
+      :                         ". Setup forming — reversal not yet confirmed in RTH session."}`
     : `No price data available for ${sym} yet.`;
   setText("mobSignalText", sigText);
 
+  // Show detail screen immediately
   mobShowScreen("detail");
+
+  // Async: fetch blurb + fundamentals in parallel
+  Promise.allSettled([
+    getCompanyBlurb(sym, s?.name || sym),
+    getFundamentals(sym),
+  ]).then(([blurbResult, statsResult]) => {
+
+    // Blurb
+    if (blurbResult.status === "fulfilled" && blurbResult.value?.blurb) {
+      setText("mobDetAbout", blurbResult.value.blurb);
+    } else {
+      setText("mobDetAbout", s?.blurb || s?.category || "—");
+    }
+
+    // Fundamentals
+    if (statsResult.status === "fulfilled") {
+      const f = statsResult.value;
+
+      const fmtLarge = (n) => {
+        if (!Number.isFinite(n)) return "—";
+        if (n >= 1e12) return `$${(n / 1e12).toFixed(2)}T`;
+        if (n >= 1e9)  return `$${(n / 1e9).toFixed(2)}B`;
+        if (n >= 1e6)  return `$${(n / 1e6).toFixed(2)}M`;
+        return `$${n.toLocaleString()}`;
+      };
+
+      const fmtVal = (n, prefix = "", suffix = "") =>
+        Number.isFinite(n) ? `${prefix}${n.toFixed(2)}${suffix}` : "—";
+
+      updateStatRow("mobStatPE",        fmtVal(f.pe));
+      updateStatRow("mobStatEPS",       fmtVal(f.eps, "$"));
+      updateStatRow("mobStatMarketCap", fmtLarge(f.market_cap));
+      updateStatRow("mobStat52High",    fmtVal(f.week_52_high, "$"));
+      updateStatRow("mobStat52Low",     fmtVal(f.week_52_low,  "$"));
+      updateStatRow("mobStatBeta",      fmtVal(f.beta));
+      updateStatRow("mobStatRevenue",   fmtLarge(f.revenue));
+      updateStatRow("mobStatYield",     Number.isFinite(f.dividend_yield)
+        ? fmtVal(f.dividend_yield * 100, "", "%") : "—");
+    }
+  });
+}
+
+function updateStatRow(id, val) {
+  const el = $(`#${id}`);
+  if (el) el.textContent = val;
 }
 
 function refreshMobileView(symbols, snap, evt) {
