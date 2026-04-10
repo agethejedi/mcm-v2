@@ -64,3 +64,27 @@ export async function getEarnings(symbol) {
     return null;
   }
 }
+// ============================================================
+// ADD THESE TWO FUNCTIONS TO THE BOTTOM OF src/api.js
+// ============================================================
+
+/**
+ * Fetch fundamentals from TwelveData via Cloudflare Function.
+ * Returns P/E, EPS, Market Cap, 52-week high/low, Beta, Revenue, Yield.
+ */
+export async function getFundamentals(symbol) {
+  const res = await fetch(`/api/fundamentals/stats?symbol=${encodeURIComponent(symbol)}`);
+  if (!res.ok) throw new Error(`Fundamentals fetch failed: ${res.status}`);
+  return res.json();
+}
+
+/**
+ * Fetch AI-generated company blurb via Cloudflare Function.
+ * Cached in KV — OpenAI is only called once per ticker ever.
+ */
+export async function getCompanyBlurb(symbol, name) {
+  const params = new URLSearchParams({ symbol, name: name || symbol });
+  const res = await fetch(`/api/company-blurb?${params}`);
+  if (!res.ok) throw new Error(`Blurb fetch failed: ${res.status}`);
+  return res.json();
+}
