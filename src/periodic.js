@@ -938,6 +938,11 @@ function injectMobileShell(symbols) {
         <div class="mob-signal-title" id="mobSignalTitle">MCM Signal</div>
         <div class="mob-signal-text" id="mobSignalText">—</div>
       </div>
+
+      <div class="mob-det-links" id="mobDetLinks">
+        <div class="mob-det-links-title">Links</div>
+        <div class="mob-det-links-list" id="mobDetLinksList"></div>
+      </div>
     </div>
 
     <div class="mob-tab-bar">
@@ -1260,6 +1265,20 @@ function mobOpenDetail(sym, snap) {
     : `No price data available for ${sym} yet.`;
   setText("mobSignalText", sigText);
 
+  // Populate links
+  const linksList = $("#mobDetLinksList");
+  if (linksList) {
+    const links = Array.isArray(s?.links) && s.links.length
+      ? s.links
+      : buildDefaultLinks(sym);
+    linksList.innerHTML = links.map((l) =>
+      `<a class="mob-det-link-item" href="${l.href}" target="_blank" rel="noreferrer">${l.label}</a>`
+    ).join("");
+  }
+
+  // After async stats load, add website link if available
+  // (handled in the async block below)
+
   // Show detail screen immediately
   mobShowScreen("detail");
 
@@ -1277,6 +1296,25 @@ function mobOpenDetail(sym, snap) {
         setText("mobDetAbout", f.description);
       } else {
         setText("mobDetAbout", s?.blurb || s?.category || "—");
+      }
+
+      // Add website link if available from TwelveData
+      if (f.website) {
+        const linksList = $("#mobDetLinksList");
+        if (linksList) {
+          const existingLinks = Array.isArray(s?.links) && s.links.length
+            ? s.links
+            : buildDefaultLinks(sym);
+          // Prepend website link if not already present
+          const hasWebsite = existingLinks.some(l => l.href === f.website);
+          const allLinks = hasWebsite ? existingLinks : [
+            { label: `${s?.name || sym} Website`, href: f.website },
+            ...existingLinks,
+          ];
+          linksList.innerHTML = allLinks.map((l) =>
+            `<a class="mob-det-link-item" href="${l.href}" target="_blank" rel="noreferrer">${l.label}</a>`
+          ).join("");
+        }
       }
 
       const fmtLarge = (n) => {
