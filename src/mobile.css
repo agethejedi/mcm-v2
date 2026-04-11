@@ -32,17 +32,13 @@
 
 /* ── OUTER CONTAINER ── */
 .mob-view {
-  display: none;
+  display: block;
   position: fixed;
   inset: 0;
   z-index: 10000;
   background: var(--mob-bg);
   font-family: 'Share Tech Mono', ui-monospace, monospace;
-}
-
-/* Show on ALL viewports — this is now the primary layout */
-.mob-view {
-  display: block;
+  overflow: hidden;
 }
 
 /* Always hide the desktop shell */
@@ -891,17 +887,34 @@
 
   /* Larger sizing for desktop */
   .mob-table-header {
-    padding: 24px 24px 16px;
+    padding: 20px 24px 14px;
     position: sticky;
     top: 0;
+    z-index: 50;
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--mob-border);
   }
 
   .mob-main-title {
-    font-size: 22px;
+    font-size: 20px;
+    margin-bottom: 10px;
   }
 
   .mob-brand {
     font-size: 12px;
+  }
+
+  .mob-legend {
+    gap: 10px;
+  }
+
+  .mob-legend-item span {
+    font-size: 11px !important;
+  }
+
+  .mob-legend-swatch {
+    width: 10px;
+    height: 10px;
   }
 
   .mob-pt-container {
@@ -914,15 +927,17 @@
 
   .mob-el {
     border-radius: 6px;
+    aspect-ratio: 1;
+    min-height: unset;
   }
 
   .mob-el-sym {
-    font-size: 16px;
+    font-size: 15px;
   }
 
   .mob-el-price,
   .mob-el-change {
-    font-size: 9px;
+    font-size: 8px;
   }
 
   .mob-el-num {
@@ -934,7 +949,8 @@
   }
 
   .mob-row-label-name {
-    font-size: 8px;
+    font-size: 9px;
+    letter-spacing: .08em;
   }
 
   .mob-sequence-bar {
@@ -1021,20 +1037,19 @@
 /* Landscape phone fix */
 @media (max-height: 500px) and (orientation: landscape) {
   .mob-view {
-    position: relative;
     overflow-y: auto;
   }
 
   .mob-screen {
-    position: relative;
-    inset: auto;
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
     padding-bottom: 80px;
-    overflow: visible;
   }
 
   .mob-table-header {
-    position: relative;
-    top: auto;
+    position: sticky;
+    top: 0;
   }
 }
 
@@ -1122,4 +1137,23 @@
 
 .mob-det-link-item:active {
   transform: scale(.97);
+}
+
+/* =========================================================
+   LONE TILE FIX — prevents last-row tiles from over-stretching
+   ========================================================= */
+
+.mob-el {
+  max-width: 100%;
+}
+
+/* On desktop, cap tile width so lone tiles don't go full-width */
+@media (min-width: 901px) {
+  .mob-pt-master {
+    align-items: start;
+  }
+
+  .mob-el-empty {
+    min-height: unset;
+  }
 }
