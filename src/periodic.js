@@ -1013,9 +1013,16 @@ function mobRenderTable(symbols, snap) {
   const maxCols = Math.max(...COHORT_ORDER_MOB.map((k) => (grouped[k] || []).length));
   const colCount = Math.min(maxCols, 8);
 
+  // Only render column headers up to the actual data width
   let html = `<div class="mob-col-hdr mob-col-hdr-empty"></div>`;
   for (let i = 1; i <= colCount; i++) {
-    html += `<div class="mob-col-hdr">${toRoman(i)}</div>`;
+    // Check if any row actually has data in this column
+    const hasData = COHORT_ORDER_MOB.some((k) => (grouped[k] || []).length >= i);
+    if (hasData) {
+      html += `<div class="mob-col-hdr">${toRoman(i)}</div>`;
+    } else {
+      html += `<div class="mob-col-hdr" style="opacity:0;pointer-events:none;"></div>`;
+    }
   }
 
   let atomicNum = 1;
@@ -1061,7 +1068,8 @@ function mobRenderTable(symbols, snap) {
     }
   }
 
-  master.style.gridTemplateColumns = `28px repeat(${colCount}, 1fr)`;
+  master.style.gridTemplateColumns = `28px repeat(${colCount}, minmax(0, 1fr))`;
+  master.style.maxWidth = "100%";
   master.innerHTML = html;
 
   master.querySelectorAll(".mob-el[data-symbol]").forEach((el) => {
