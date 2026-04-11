@@ -1,6 +1,10 @@
 // functions/api/fundamentals/stats.js
-// Primary source: /quote (reliable across all Dow 30 on Grow plan)
-// Secondary: /profile for description, sector, industry
+//
+// Data strategy:
+//   TwelveData — 52W High/Low, sector, industry, employees, website, description
+//   FMP        — P/E, EPS, Market Cap, Beta, Revenue, Dividend Yield
+//
+// Results cached in KV for 6 hours to minimize API credit usage.
 // Usage: GET /api/fundamentals/stats?symbol=JNJ
 
 export async function onRequestGet(ctx) {
@@ -9,22 +13,65 @@ export async function onRequestGet(ctx) {
 
   if (!symbol) return json({ error: "symbol required" }, 400);
 
-  const apiKey = ctx.env.TWELVE_DATA_API_KEY;
-  if (!apiKey) return json({ error: "TWELVE_DATA_API_KEY not configured" }, 500);
+  const tdKey  = ctx.env.TWELVE_DATA_API_KEY;
+  const fmpKey = ctx.env.FMP_API_KEY;
+
+  if (!tdKey)  return json({ error: "TWELVE_DATA_API_KEY not configured" }, 500);
+  if (!fmpKey) return json({ error: "FMP_API_KEY not configured" }, 500);
 
   // KV cache — 6 hours
-  const cacheKey = `fundamentals:stats:v3:${symbol}`;
+  const cacheKey = `fundamentals:stats:v5:${symbol}`;
   try {
     const cached = await ctx.env.MCM_KV.get(cacheKey, "json");
     if (cached) return json({ ...cached, _cached: true });
   } catch {}
 
-  const base = `https://api.twelvedata.com`;
+  // Fetch TwelveData and FMP in parallel
+  const [td, fmp] = await Promise.all([
+    fetchTwelveData(symbol, tdKey),
+    fetchFMP(symbol, fmpKey),
+  ]);
+
+  const result = {
+    symbol,
+
+    // ── FMP fields (the six that TwelveData couldn't provide) ──
+    pe:             fmp.pe             ?? null,
+    eps:            fmp.eps            ?? null,
+    market_cap:     fmp.market_cap     ?? null,
+    beta:           fmp.beta           ?? null,
+    revenue:        fmp.revenue        ?? null,
+    dividend_yield: fmp.dividend_yield ?? null,
+
+    // ── TwelveData fields ──
+    week_52_high: td.week_52_high ?? null,
+    week_52_low:  td.week_52_low  ?? null,
+    sector:       td.sector       ?? fmp.sector   ?? null,
+    industry:     td.industry     ?? fmp.industry ?? null,
+    employees:    td.employees    ?? null,
+    website:      td.website      ?? null,
+    description:  td.description  ?? null,
+  };
+
+  // Cache for 6 hours
+  try {
+    await ctx.env.MCM_KV.put(cacheKey, JSON.stringify(result), {
+      expirationTtl: 21600,
+    });
+  } catch {}
+
+  return json(result);
+}
+
+/* ============================================================
+   TWELVEDATA — profile + quote for price range + description
+   ============================================================ */
+
+async function fetchTwelveData(symbol, apiKey) {
+  const base = "https://api.twelvedata.com";
   const k    = `apikey=${apiKey}`;
 
   try {
-    // quote is the most reliable endpoint across all plan tiers
-    // profile gives us description + sector + industry
     const [quoteRes, profileRes] = await Promise.all([
       fetch(`${base}/quote?symbol=${symbol}&${k}`),
       fetch(`${base}/profile?symbol=${symbol}&${k}`),
@@ -35,39 +82,64 @@ export async function onRequestGet(ctx) {
       profileRes.json(),
     ]);
 
-    // quote fields — these are reliable on Grow plan
     const fw = quote?.fifty_two_week || {};
 
-    const result = {
-      symbol,
-      pe:             safeNum(quote?.pe)               ?? null,
-      eps:            safeNum(quote?.eps)              ?? null,
-      market_cap:     safeNum(quote?.market_cap)       ?? null,
-      week_52_high:   safeNum(fw.high)                 ?? null,
-      week_52_low:    safeNum(fw.low)                  ?? null,
-      beta:           safeNum(quote?.beta)             ?? null,
-      revenue:        null, // not in quote; extracted from description text
-      dividend_yield: safeNum(quote?.dividend_yield)   ?? null,
-      sector:         profile?.sector                  || quote?.sector   || null,
-      industry:       profile?.industry                || null,
-      employees:      safeNum(profile?.employees)      || null,
-      website:        profile?.website                 || null,
-      description:    profile?.description             || null,
+    return {
+      week_52_high: safeNum(fw.high)            ?? null,
+      week_52_low:  safeNum(fw.low)             ?? null,
+      sector:       profile?.sector             || null,
+      industry:     profile?.industry           || null,
+      employees:    safeNum(profile?.employees) || null,
+      website:      profile?.website            || null,
+      description:  profile?.description        || null,
     };
-
-    // Cache 6 hours
-    try {
-      await ctx.env.MCM_KV.put(cacheKey, JSON.stringify(result), {
-        expirationTtl: 21600,
-      });
-    } catch {}
-
-    return json(result);
-
-  } catch (err) {
-    return json({ error: "fetch failed", detail: String(err) }, 502);
+  } catch {
+    return {};
   }
 }
+
+/* ============================================================
+   FMP — key metrics endpoint for the six missing fields
+   One call per symbol, very credit-efficient.
+   ============================================================ */
+
+async function fetchFMP(symbol, apiKey) {
+  try {
+    // profile    — beta, market cap, PE, EPS, dividend yield, sector, industry
+    // income-statement — total revenue (annual, most recent)
+    const [profileRes, incomeRes] = await Promise.all([
+      fetch(`https://financialmodelingprep.com/api/v3/profile/${symbol}?apikey=${apiKey}`),
+      fetch(`https://financialmodelingprep.com/api/v3/income-statement/${symbol}?period=annual&limit=1&apikey=${apiKey}`),
+    ]);
+
+    const [profileArr, incomeArr] = await Promise.all([
+      profileRes.json(),
+      incomeRes.json(),
+    ]);
+
+    const p = Array.isArray(profileArr) ? profileArr[0] : null;
+    const i = Array.isArray(incomeArr)  ? incomeArr[0]  : null;
+
+    return {
+      pe:             safeNum(p?.pe)              ?? null,
+      eps:            safeNum(p?.eps)             ?? null,
+      market_cap:     safeNum(p?.mktCap)          ?? null,
+      beta:           safeNum(p?.beta)            ?? null,
+      revenue:        safeNum(i?.revenue)         ?? null,
+      dividend_yield: safeNum(p?.lastDiv) != null && safeNum(p?.price) != null && safeNum(p?.price) > 0
+                        ? safeNum(p.lastDiv) / safeNum(p.price)
+                        : null,
+      sector:         p?.sector   || null,
+      industry:       p?.industry || null,
+    };
+  } catch {
+    return {};
+  }
+}
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
 
 function safeNum(v) {
   const n = Number(v);
