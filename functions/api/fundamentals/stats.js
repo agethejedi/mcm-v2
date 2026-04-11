@@ -1,11 +1,12 @@
 // functions/api/fundamentals/stats.js
 //
 // Data strategy:
-//   TwelveData — 52W High/Low, sector, industry, employees, website, description
-//   FMP        — P/E, EPS, Market Cap, Beta, Revenue, Dividend Yield
+//   TwelveData  — 52W High/Low, sector, industry, employees, website, description
+//   FMP stable  — P/E, EPS, Market Cap, Beta, Revenue, Dividend Yield
 //
-// Results cached in KV for 6 hours to minimize API credit usage.
-// Usage: GET /api/fundamentals/stats?symbol=JNJ
+// FMP base: https://financialmodelingprep.com/stable/
+// Results cached in KV for 6 hours.
+// Usage: GET /api/fundamentals/stats?symbol=AAPL
 
 export async function onRequestGet(ctx) {
   const { searchParams } = new URL(ctx.request.url);
@@ -20,7 +21,7 @@ export async function onRequestGet(ctx) {
   if (!fmpKey) return json({ error: "FMP_API_KEY not configured" }, 500);
 
   // KV cache — 6 hours
-  const cacheKey = `fundamentals:stats:v5:${symbol}`;
+  const cacheKey = `fundamentals:stats:v6:${symbol}`;
   try {
     const cached = await ctx.env.MCM_KV.get(cacheKey, "json");
     if (cached) return json({ ...cached, _cached: true });
@@ -35,7 +36,7 @@ export async function onRequestGet(ctx) {
   const result = {
     symbol,
 
-    // ── FMP fields (the six that TwelveData couldn't provide) ──
+    // FMP fields
     pe:             fmp.pe             ?? null,
     eps:            fmp.eps            ?? null,
     market_cap:     fmp.market_cap     ?? null,
@@ -43,7 +44,7 @@ export async function onRequestGet(ctx) {
     revenue:        fmp.revenue        ?? null,
     dividend_yield: fmp.dividend_yield ?? null,
 
-    // ── TwelveData fields ──
+    // TwelveData fields
     week_52_high: td.week_52_high ?? null,
     week_52_low:  td.week_52_low  ?? null,
     sector:       td.sector       ?? fmp.sector   ?? null,
@@ -53,7 +54,7 @@ export async function onRequestGet(ctx) {
     description:  td.description  ?? null,
   };
 
-  // Cache for 6 hours
+  // Cache 6 hours
   try {
     await ctx.env.MCM_KV.put(cacheKey, JSON.stringify(result), {
       expirationTtl: 21600,
@@ -64,7 +65,7 @@ export async function onRequestGet(ctx) {
 }
 
 /* ============================================================
-   TWELVEDATA — profile + quote for price range + description
+   TWELVEDATA — quote (52W range) + profile (description etc.)
    ============================================================ */
 
 async function fetchTwelveData(symbol, apiKey) {
@@ -99,38 +100,56 @@ async function fetchTwelveData(symbol, apiKey) {
 }
 
 /* ============================================================
-   FMP — key metrics endpoint for the six missing fields
-   One call per symbol, very credit-efficient.
+   FMP STABLE API
+   /stable/ratios        — PE, EPS, dividend yield
+   /stable/profile       — market cap, beta, revenue, sector
    ============================================================ */
 
 async function fetchFMP(symbol, apiKey) {
+  const base = "https://financialmodelingprep.com/stable";
+
   try {
-    // profile    — beta, market cap, PE, EPS, dividend yield, sector, industry
-    // income-statement — total revenue (annual, most recent)
-    const [profileRes, incomeRes] = await Promise.all([
-      fetch(`https://financialmodelingprep.com/api/v3/profile/${symbol}?apikey=${apiKey}`),
-      fetch(`https://financialmodelingprep.com/api/v3/income-statement/${symbol}?period=annual&limit=1&apikey=${apiKey}`),
+    const [ratiosRes, profileRes] = await Promise.all([
+      fetch(`${base}/ratios?symbol=${symbol}&apikey=${apiKey}`),
+      fetch(`${base}/profile?symbol=${symbol}&apikey=${apiKey}`),
     ]);
 
-    const [profileArr, incomeArr] = await Promise.all([
+    const [ratiosData, profileData] = await Promise.all([
+      ratiosRes.json(),
       profileRes.json(),
-      incomeRes.json(),
     ]);
 
-    const p = Array.isArray(profileArr) ? profileArr[0] : null;
-    const i = Array.isArray(incomeArr)  ? incomeArr[0]  : null;
+    // /stable/ratios returns an array or object — handle both
+    const r = Array.isArray(ratiosData)  ? ratiosData[0]  : ratiosData;
+    const p = Array.isArray(profileData) ? profileData[0] : profileData;
+
+    // Field names from FMP stable API
+    const pe  = safeNum(r?.priceToEarningsRatio)
+             ?? safeNum(r?.peRatio)
+             ?? safeNum(r?.["Price to Earnings"])
+             ?? safeNum(p?.pe)
+             ?? null;
+
+    const eps = safeNum(r?.earningsPerShare)
+             ?? safeNum(r?.eps)
+             ?? safeNum(p?.eps)
+             ?? null;
+
+    const divYield = safeNum(r?.dividendYield)
+                  ?? safeNum(r?.["Dividend Yield"])
+                  ?? safeNum(p?.lastDiv) != null && safeNum(p?.price) > 0
+                    ? safeNum(p.lastDiv) / safeNum(p.price)
+                    : null;
 
     return {
-      pe:             safeNum(p?.pe)              ?? null,
-      eps:            safeNum(p?.eps)             ?? null,
-      market_cap:     safeNum(p?.mktCap)          ?? null,
-      beta:           safeNum(p?.beta)            ?? null,
-      revenue:        safeNum(i?.revenue)         ?? null,
-      dividend_yield: safeNum(p?.lastDiv) != null && safeNum(p?.price) != null && safeNum(p?.price) > 0
-                        ? safeNum(p.lastDiv) / safeNum(p.price)
-                        : null,
-      sector:         p?.sector   || null,
-      industry:       p?.industry || null,
+      pe,
+      eps,
+      market_cap:     safeNum(p?.marketCap)   ?? safeNum(p?.mktCap)  ?? null,
+      beta:           safeNum(p?.beta)                                ?? null,
+      revenue:        safeNum(p?.revenue)      ?? safeNum(r?.revenue) ?? null,
+      dividend_yield: typeof divYield === "boolean" ? null : divYield,
+      sector:         p?.sector                                       || null,
+      industry:       p?.industry                                     || null,
     };
   } catch {
     return {};
