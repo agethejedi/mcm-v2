@@ -135,11 +135,15 @@ async function fetchFMP(symbol, apiKey) {
              ?? safeNum(p?.eps)
              ?? null;
 
+    const _lastDiv = safeNum(p?.lastDiv);
+    const _price   = safeNum(p?.price);
+    const _calcYield = (_lastDiv != null && _price != null && _price > 0)
+      ? _lastDiv / _price
+      : null;
+
     const divYield = safeNum(r?.dividendYield)
                   ?? safeNum(r?.["Dividend Yield"])
-                  ?? safeNum(p?.lastDiv) != null && safeNum(p?.price) > 0
-                    ? safeNum(p.lastDiv) / safeNum(p.price)
-                    : null;
+                  ?? _calcYield;
 
     return {
       pe,
