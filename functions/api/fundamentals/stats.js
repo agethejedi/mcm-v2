@@ -21,7 +21,7 @@ export async function onRequestGet(ctx) {
   if (!fmpKey) return json({ error: "FMP_API_KEY not configured" }, 500);
 
   // KV cache — 6 hours
-  const cacheKey = `fundamentals:stats:v6:${symbol}`;
+  const cacheKey = `fundamentals:stats:v7:${symbol}`;
   try {
     const cached = await ctx.env.MCM_KV.get(cacheKey, "json");
     if (cached) return json({ ...cached, _cached: true });
@@ -109,34 +109,49 @@ async function fetchFMP(symbol, apiKey) {
   const base = "https://financialmodelingprep.com/stable";
 
   try {
-    const [ratiosRes, profileRes] = await Promise.all([
+    const [ratiosRes, profileRes, scoresRes, earningsRes] = await Promise.all([
       fetch(`${base}/ratios?symbol=${symbol}&apikey=${apiKey}`),
       fetch(`${base}/profile?symbol=${symbol}&apikey=${apiKey}`),
+      fetch(`${base}/financial-scores?symbol=${symbol}&apikey=${apiKey}`),
+      fetch(`${base}/owner-earnings?symbol=${symbol}&apikey=${apiKey}`),
     ]);
 
-    const [ratiosData, profileData] = await Promise.all([
+    const [ratiosData, profileData, scoresData, earningsData] = await Promise.all([
       ratiosRes.json(),
       profileRes.json(),
+      scoresRes.json(),
+      earningsRes.json(),
     ]);
 
-    // /stable/ratios returns an array or object — handle both
-    const r = Array.isArray(ratiosData)  ? ratiosData[0]  : ratiosData;
-    const p = Array.isArray(profileData) ? profileData[0] : profileData;
+    const r = Array.isArray(ratiosData)   ? ratiosData[0]   : ratiosData;
+    const p = Array.isArray(profileData)  ? profileData[0]  : profileData;
+    const s = Array.isArray(scoresData)   ? scoresData[0]   : scoresData;
+    // owner-earnings returns array sorted newest first
+    const e = Array.isArray(earningsData) ? earningsData[0] : earningsData;
 
-    // Field names from FMP stable API
-    const pe  = safeNum(r?.priceToEarningsRatio)
-             ?? safeNum(r?.peRatio)
-             ?? safeNum(r?.["Price to Earnings"])
-             ?? safeNum(p?.pe)
-             ?? null;
+    // P/E
+    const pe = safeNum(r?.priceToEarningsRatio)
+            ?? safeNum(r?.peRatio)
+            ?? safeNum(r?.["Price to Earnings"])
+            ?? safeNum(p?.pe)
+            ?? null;
 
-    const eps = safeNum(r?.earningsPerShare)
-             ?? safeNum(r?.eps)
+    // EPS — owner earnings per share
+    const eps = safeNum(e?.ownerEarningsPerShare)
+             ?? safeNum(e?.earningsPerShare)
+             ?? safeNum(r?.earningsPerShare)
              ?? safeNum(p?.eps)
              ?? null;
 
-    const _lastDiv = safeNum(p?.lastDiv);
-    const _price   = safeNum(p?.price);
+    // Revenue — from financial-scores
+    const revenue = safeNum(s?.revenue)
+                 ?? safeNum(s?.totalRevenue)
+                 ?? safeNum(p?.revenue)
+                 ?? null;
+
+    // Dividend yield
+    const _lastDiv   = safeNum(p?.lastDiv);
+    const _price     = safeNum(p?.price);
     const _calcYield = (_lastDiv != null && _price != null && _price > 0)
       ? _lastDiv / _price
       : null;
@@ -148,12 +163,12 @@ async function fetchFMP(symbol, apiKey) {
     return {
       pe,
       eps,
-      market_cap:     safeNum(p?.marketCap)   ?? safeNum(p?.mktCap)  ?? null,
-      beta:           safeNum(p?.beta)                                ?? null,
-      revenue:        safeNum(p?.revenue)      ?? safeNum(r?.revenue) ?? null,
+      revenue,
+      market_cap:     safeNum(p?.marketCap) ?? safeNum(p?.mktCap) ?? null,
+      beta:           safeNum(p?.beta)                             ?? null,
       dividend_yield: typeof divYield === "boolean" ? null : divYield,
-      sector:         p?.sector                                       || null,
-      industry:       p?.industry                                     || null,
+      sector:         p?.sector   || null,
+      industry:       p?.industry || null,
     };
   } catch {
     return {};
