@@ -827,27 +827,40 @@ function injectMobileShell(symbols) {
         <div class="mob-regime-card">
           <div class="mob-regime-card-header">
             <span class="mob-regime-card-title">Market Regime</span>
-            <span class="mob-regime-card-sub">Current phase</span>
+            <span class="mob-regime-card-sub" id="mobRegimeSub">Current phase</span>
           </div>
-          <div class="mob-phase-blocks">
-            <div class="mob-phase-block mob-phase-roff" id="mobPhaseRoff">
-              <div class="mob-phase-pip"></div>
-              <div class="mob-phase-icon">🧊</div>
-              <div class="mob-phase-label">Risk-Off</div>
-              <div class="mob-phase-desc">Defensive<br>leadership</div>
+
+          <!-- Animated spectrum bar -->
+          <div class="mob-spectrum-wrap">
+
+            <!-- Labels above -->
+            <div class="mob-spectrum-labels">
+              <span class="mob-spec-label-off">RISK-OFF</span>
+              <span class="mob-spec-label-mid">TRANSITION</span>
+              <span class="mob-spec-label-on">RISK-ON</span>
             </div>
-            <div class="mob-phase-block mob-phase-trans" id="mobPhaseTrans">
-              <div class="mob-phase-pip"></div>
-              <div class="mob-phase-icon">🌊</div>
-              <div class="mob-phase-label">Transition</div>
-              <div class="mob-phase-desc">Rotation /<br>caution</div>
+
+            <!-- The bar itself -->
+            <div class="mob-spectrum-track">
+              <div class="mob-spectrum-gradient"></div>
+
+              <!-- Directional momentum arrows — rendered by JS -->
+              <div class="mob-spectrum-arrows" id="mobSpecArrows"></div>
+
+              <!-- Moving dot indicator -->
+              <div class="mob-spectrum-dot" id="mobSpecDot"></div>
             </div>
-            <div class="mob-phase-block mob-phase-ron" id="mobPhaseRon">
-              <div class="mob-phase-pip"></div>
-              <div class="mob-phase-icon">🔥</div>
-              <div class="mob-phase-label">Risk-On</div>
-              <div class="mob-phase-desc">Broad<br>participation</div>
+
+            <!-- Descriptors below -->
+            <div class="mob-spectrum-descs">
+              <span>Defensive<br>leadership</span>
+              <span>Rotation /<br>caution</span>
+              <span>Broad<br>participation</span>
             </div>
+
+            <!-- Momentum label -->
+            <div class="mob-spectrum-momentum" id="mobSpecMomentum"></div>
+
           </div>
         </div>
       </div>
@@ -1190,12 +1203,8 @@ function mobRenderEventCard(evt, snap, symbols) {
   if (pctEl) { pctEl.textContent = total ? `${pct}%` : "—"; pctEl.className = `mob-breadout-val ${pct >= 50 ? "pos" : "neg"}`; }
   if (leadEl) { leadEl.textContent = `${leadersUp}/${LEADERS.length}`; leadEl.className = `mob-breadout-val ${leadersUp >= 2 ? "pos" : "neg"}`; }
 
-  // Phase blocks
-  ["#mobPhaseRoff", "#mobPhaseTrans", "#mobPhaseRon"].forEach((sel) => $(sel)?.classList.remove("mob-phase-active"));
-  if (evt.toneClass === "evt-red" || evt.toneClass === "evt-blue") $("#mobPhaseRoff")?.classList.add("mob-phase-active");
-  else if (evt.toneClass === "evt-orange" || evt.toneClass === "evt-yellow") $("#mobPhaseTrans")?.classList.add("mob-phase-active");
-  else if (evt.toneClass === "evt-green") $("#mobPhaseRon")?.classList.add("mob-phase-active");
-  else $("#mobPhaseTrans")?.classList.add("mob-phase-active");
+  // Animated spectrum bar
+  updateSpectrumBar(evt, snap, symbols);
 }
 
 function mobOpenDetail(sym, snap) {
@@ -1374,6 +1383,101 @@ function mobOpenDetail(sym, snap) {
 function updateStatRow(id, val) {
   const el = $(`#${id}`);
   if (el) el.textContent = val;
+}
+
+function updateSpectrumBar(evt, snap, symbols) {
+  const dot = $("#mobSpecDot");
+  const arrows = $("#mobSpecArrows");
+  const momentum = $("#mobSpecMomentum");
+  const sub = $("#mobRegimeSub");
+  if (!dot || !arrows) return;
+
+  // Dot position as % across the bar
+  const positions = {
+    panic:    8,
+    policy:   20,
+    macro:    38,
+    earnings: 50,
+    recovery: 82,
+  };
+  const pos = positions[evt?.code] ?? 50;
+
+  // Set dot position with smooth transition
+  dot.style.left = `calc(${pos}% - 9px)`;
+
+  // Determine dot color based on position
+  if (pos <= 30) {
+    dot.className = "mob-spectrum-dot mob-spec-dot-off";
+  } else if (pos <= 60) {
+    dot.className = "mob-spectrum-dot mob-spec-dot-trans";
+  } else {
+    dot.className = "mob-spectrum-dot mob-spec-dot-on";
+  }
+
+  // Compute momentum direction from breadth
+  const LEADERS = ["MSFT", "AAPL", "NVDA", "V"];
+  let up = 0, total = 0, leadersUp = 0;
+  for (const s of symbols) {
+    const d = snap?.[s.symbol];
+    if (!d) continue;
+    const last = Number(d.last);
+    const prev = Number(d?.previous_close) || Number(d?.meta?.previous_close) || NaN;
+    if (!Number.isFinite(last) || !Number.isFinite(prev) || prev === 0) continue;
+    total++;
+    if (last >= prev) up++;
+  }
+  for (const sym of LEADERS) {
+    const d = snap?.[sym];
+    if (!d) continue;
+    const last = Number(d.last);
+    const prev = Number(d?.previous_close) || Number(d?.meta?.previous_close) || NaN;
+    if (Number.isFinite(last) && Number.isFinite(prev) && prev !== 0 && last >= prev) leadersUp++;
+  }
+
+  const breadthPct = total ? up / total : 0;
+  const leadersStrong = leadersUp >= 2;
+
+  // Determine momentum: risk-on, risk-off, or neutral
+  let direction = "neutral";
+  if (breadthPct >= 0.60 && leadersStrong) direction = "risk-on";
+  else if (breadthPct <= 0.35 && leadersUp <= 1) direction = "risk-off";
+
+  // Build animated arrows
+  const arrowCount = 3;
+  let arrowHtml = "";
+  let momentumText = "";
+
+  if (direction === "risk-on") {
+    for (let i = 0; i < arrowCount; i++) {
+      arrowHtml += `<span class="mob-spec-arrow mob-spec-arrow-on" style="animation-delay:${i * 0.22}s">›</span>`;
+    }
+    momentumText = "▲ Momentum building toward Risk-On";
+    if (momentum) { momentum.textContent = momentumText; momentum.className = "mob-spectrum-momentum mob-spec-mom-on"; }
+  } else if (direction === "risk-off") {
+    for (let i = arrowCount - 1; i >= 0; i--) {
+      arrowHtml += `<span class="mob-spec-arrow mob-spec-arrow-off" style="animation-delay:${(arrowCount - 1 - i) * 0.22}s">‹</span>`;
+    }
+    momentumText = "▼ Momentum shifting toward Risk-Off";
+    if (momentum) { momentum.textContent = momentumText; momentum.className = "mob-spectrum-momentum mob-spec-mom-off"; }
+  } else {
+    arrowHtml = "";
+    momentumText = "◆ Mixed signals — Transition zone";
+    if (momentum) { momentum.textContent = momentumText; momentum.className = "mob-spectrum-momentum mob-spec-mom-neu"; }
+  }
+
+  arrows.innerHTML = arrowHtml;
+
+  // Update sub label
+  if (sub) {
+    const labels = {
+      panic:    "Panic / Liquidation — defensive leadership",
+      policy:   "Risk-Off — rotation into safety",
+      macro:    "Macro repricing — transition",
+      earnings: "Normal / Earnings-driven — transition",
+      recovery: "Recovery — broad participation building",
+    };
+    sub.textContent = labels[evt?.code] || "Current phase";
+  }
 }
 
 function refreshMobileView(symbols, snap, evt) {
