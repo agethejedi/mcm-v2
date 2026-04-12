@@ -1,4 +1,5 @@
 // src/periodic.js
+import "./mobile.css";
 import { getSnapshot, getActiveEvent, getDividends, getEarnings, getFundamentals } from "./api.js";
 
 const $ = (sel) => document.querySelector(sel);
@@ -1032,40 +1033,59 @@ function mobRenderTable(symbols, snap) {
     if (!list.length) continue;
     const meta = COHORT_META[cohortKey] || { label: cohortKey, cls: "mob-c1", color: "#888", shortLabel: "—" };
 
-    html += `
-      <div class="mob-row-label" style="position:relative;">
-        <span class="mob-row-label-name" style="color:${meta.color}">${meta.shortLabel}</span>
-        <div style="position:absolute;right:0;top:0;bottom:0;width:2px;background:${meta.color};opacity:.35;border-radius:1px;"></div>
-      </div>
-    `;
-
-    list.forEach((s) => {
-      const d = snap?.[s.symbol] || {};
-      const last = Number(d.last);
-      const prev = Number(d?.previous_close) || Number(d?.meta?.previous_close) || NaN;
-      const hasData = Number.isFinite(last) && Number.isFinite(prev) && prev !== 0;
-      const chg = hasData ? last - prev : NaN;
-      const isPos = hasData && chg >= 0;
-      const isNeg = hasData && chg < 0;
-      const signal = getTileSignal(d);
-      const signalCls = signal === "confirmed" ? "mob-el-confirmed" : signal === "down" ? "mob-el-down" : signal === "forming" ? "mob-el-forming" : "";
-      const dirCls = isPos ? "pos" : isNeg ? "neg" : "";
-
-      html += `
-        <div class="mob-el ${meta.cls} ${signalCls}" data-symbol="${s.symbol}" data-atomic="${atomicNum}">
-          <div class="mob-el-num">${atomicNum}</div>
-          <div class="mob-el-price ${dirCls}">${hasData ? mobFmtPrice(last) : "—"}</div>
-          <div class="mob-el-sym">${s.symbol}</div>
-          <div class="mob-el-change ${dirCls}">${hasData ? mobFmtChg(chg) : "—"}</div>
-        </div>
-      `;
-      atomicNum++;
-    });
-
-    const emptyCells = colCount - list.length;
-    for (let e = 0; e < emptyCells; e++) {
-      html += `<div class="mob-el mob-el-empty"></div>`;
+    // Split into chunks of colCount so long cohorts wrap cleanly
+    const chunks = [];
+    for (let i = 0; i < list.length; i += colCount) {
+      chunks.push(list.slice(i, i + colCount));
     }
+
+    chunks.forEach((chunk, chunkIdx) => {
+      // Row label — only show on first chunk of each cohort
+      if (chunkIdx === 0) {
+        html += `
+          <div class="mob-row-label" style="position:relative;">
+            <span class="mob-row-label-name" style="color:${meta.color}">${meta.shortLabel}</span>
+            <div style="position:absolute;right:0;top:0;bottom:0;width:2px;background:${meta.color};opacity:.35;border-radius:1px;"></div>
+          </div>
+        `;
+      } else {
+        // Continuation row — empty label cell with color bar
+        html += `
+          <div class="mob-row-label" style="position:relative;">
+            <div style="position:absolute;right:0;top:0;bottom:0;width:2px;background:${meta.color};opacity:.35;border-radius:1px;"></div>
+          </div>
+        `;
+      }
+
+      chunk.forEach((s) => {
+        const d = snap?.[s.symbol] || {};
+        const last = Number(d.last);
+        const prev = Number(d?.previous_close) || Number(d?.meta?.previous_close) || NaN;
+        const hasData = Number.isFinite(last) && Number.isFinite(prev) && prev !== 0;
+        const chg = hasData ? last - prev : NaN;
+        const isPos = hasData && chg >= 0;
+        const isNeg = hasData && chg < 0;
+        const signal = getTileSignal(d);
+        const signalCls = signal === "confirmed" ? "mob-el-confirmed" : signal === "down" ? "mob-el-down" : signal === "forming" ? "mob-el-forming" : "";
+        const dirCls = isPos ? "pos" : isNeg ? "neg" : "";
+
+        html += `
+          <div class="mob-el ${meta.cls} ${signalCls}" data-symbol="${s.symbol}" data-atomic="${atomicNum}">
+            <div class="mob-el-num">${atomicNum}</div>
+            <div class="mob-el-price ${dirCls}">${hasData ? mobFmtPrice(last) : "—"}</div>
+            <div class="mob-el-sym">${s.symbol}</div>
+            <div class="mob-el-change ${dirCls}">${hasData ? mobFmtChg(chg) : "—"}</div>
+          </div>
+        `;
+        atomicNum++;
+      });
+
+      // Fill remainder of row with empty cells
+      const emptyCells = colCount - chunk.length;
+      for (let e = 0; e < emptyCells; e++) {
+        html += `<div class="mob-el mob-el-empty"></div>`;
+      }
+    });
   }
 
   master.style.gridTemplateColumns = `28px repeat(${colCount}, minmax(0, 1fr))`;
