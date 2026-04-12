@@ -849,311 +849,273 @@
 
 /* =========================================================
    DESKTOP / LARGE VIEWPORT SCALING
+   Full-width fluid layout — scales to fill any viewport
    ========================================================= */
 
 @media (min-width: 901px) {
-  /* Fix the view container so it scrolls naturally */
+
+  /* Full viewport — no boxing */
   .mob-view {
     font-size: 14px;
-    position: relative;
-    overflow-y: auto;
-    overflow-x: hidden;
-  }
-
-  /* Screens become normal block flow, centered, max 900px wide */
-  .mob-screen {
-    position: relative;
-    inset: auto;
-    max-width: 900px;
-    width: 100%;
-    margin: 0 auto;
-    left: auto;
-    transform: none;
-    padding-bottom: 100px;
-    overflow: visible;
-  }
-
-  .mob-screen.active {
-    display: block;
-  }
-
-  /* Tab bar stays fixed but centered */
-  .mob-tab-bar {
-    max-width: 900px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
-  }
-
-  /* Larger sizing for desktop */
-  .mob-table-header {
-    padding: 20px 24px 14px;
-    position: sticky;
-    top: 0;
-    z-index: 50;
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--mob-border);
-  }
-
-  .mob-main-title {
-    font-size: 20px;
-    margin-bottom: 10px;
-  }
-
-  .mob-brand {
-    font-size: 12px;
-  }
-
-  .mob-legend {
-    gap: 10px;
-  }
-
-  .mob-legend-item span {
-    font-size: 11px !important;
-  }
-
-  .mob-legend-swatch {
-    width: 10px;
-    height: 10px;
-  }
-
-  .mob-pt-container {
-    padding: 12px 16px 0;
-  }
-
-  .mob-pt-master {
-    gap: 5px;
-  }
-
-  .mob-el {
-    border-radius: 6px;
-    aspect-ratio: 1;
-    min-height: unset;
-  }
-
-  .mob-el-sym {
-    font-size: 15px;
-  }
-
-  .mob-el-price,
-  .mob-el-change {
-    font-size: 8px;
-  }
-
-  .mob-el-num {
-    font-size: 7px;
-  }
-
-  .mob-col-hdr {
-    font-size: 9px;
-  }
-
-  .mob-row-label-name {
-    font-size: 9px;
-    letter-spacing: .08em;
-  }
-
-  .mob-sequence-bar {
-    margin: 16px 16px 0;
-  }
-
-  .mob-seq-labels {
-    padding: 6px 16px 0;
-  }
-
-  .mob-seq-label {
-    font-size: 9px;
-  }
-
-  .mob-ticker {
-    height: 28px;
-  }
-
-  .mob-t-item {
-    font-size: 11px;
-  }
-
-  .mob-regime-section {
-    padding: 12px 16px 0;
-  }
-
-  .mob-breadout-val {
-    font-size: 20px;
-  }
-
-  .mob-breadout-label {
-    font-size: 9px;
-  }
-
-  .mob-event-type-pill {
-    font-size: 10px;
-  }
-
-  .mob-tab-icon {
-    font-size: 24px;
-  }
-
-  .mob-tab-lbl {
-    font-size: 10px;
-  }
-
-  .mob-big-element {
-    width: 140px;
-    height: 140px;
-  }
-
-  .mob-big-el-sym {
-    font-size: 52px;
-  }
-
-  .mob-det-company-name {
-    font-size: 26px;
-  }
-
-  .mob-el-data-table {
-    margin: 0 24px 16px;
-  }
-
-  .mob-el-data-val {
-    font-size: 15px;
-  }
-
-  .mob-det-about,
-  .mob-signal-box {
-    margin-left: 24px;
-    margin-right: 24px;
-  }
-
-  .mob-legend-swatch {
-    width: 10px;
-    height: 10px;
-  }
-
-  .mob-legend-item span {
-    font-size: 10px !important;
-  }
-}
-
-/* Landscape phone fix */
-@media (max-height: 500px) and (orientation: landscape) {
-  .mob-view {
-    overflow-y: auto;
+    overflow: hidden;
   }
 
   .mob-screen {
     position: absolute;
     inset: 0;
     overflow-y: auto;
-    padding-bottom: 80px;
+    overflow-x: hidden;
+    padding-bottom: 100px;
+  }
+
+  .mob-screen.active {
+    display: block;
+  }
+
+  /* Header — full width, sticky */
+  .mob-table-header {
+    padding: 20px 32px 16px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--mob-border);
+    max-width: 100%;
+  }
+
+  .mob-main-title {
+    font-size: clamp(18px, 2vw, 28px);
+    margin-bottom: 10px;
+  }
+
+  .mob-brand {
+    font-size: clamp(10px, 1vw, 13px);
+    letter-spacing: .18em;
+  }
+
+  .mob-legend {
+    gap: 12px;
+  }
+
+  .mob-legend-item span {
+    font-size: clamp(9px, .9vw, 12px) !important;
+  }
+
+  .mob-legend-swatch {
+    width: 10px;
+    height: 10px;
+  }
+
+  /* Periodic table — full width with fluid padding */
+  .mob-pt-container {
+    padding: 12px 32px 0;
+  }
+
+  .mob-pt-master {
+    gap: clamp(3px, .4vw, 7px);
+  }
+
+  /* Element cells — fluid square sizing */
+  .mob-el {
+    border-radius: clamp(4px, .5vw, 8px);
+    aspect-ratio: 1;
+    min-height: unset;
+  }
+
+  .mob-el-sym {
+    font-size: clamp(11px, 1.4vw, 20px);
+  }
+
+  .mob-el-price,
+  .mob-el-change {
+    font-size: clamp(7px, .75vw, 11px);
+  }
+
+  .mob-el-num {
+    font-size: clamp(6px, .6vw, 9px);
+  }
+
+  /* Column + row labels */
+  .mob-col-hdr {
+    font-size: clamp(7px, .7vw, 11px);
+    padding-bottom: 4px;
+  }
+
+  .mob-row-label {
+    width: clamp(24px, 2.5vw, 40px);
+  }
+
+  .mob-row-label-name {
+    font-size: clamp(7px, .7vw, 10px);
+    letter-spacing: .08em;
+  }
+
+  /* Sequence bar */
+  .mob-sequence-bar {
+    margin: 14px 32px 0;
+  }
+
+  .mob-seq-labels {
+    padding: 5px 32px 0;
+  }
+
+  .mob-seq-label {
+    font-size: clamp(8px, .8vw, 11px);
+  }
+
+  /* Ticker */
+  .mob-ticker {
+    height: 28px;
+    margin-top: 10px;
+  }
+
+  .mob-ticker-inner {
+    gap: 28px;
+    padding-left: 20px;
+  }
+
+  .mob-t-item {
+    font-size: clamp(9px, .9vw, 13px);
+  }
+
+  /* Event + regime section */
+  .mob-regime-section {
+    padding: 12px 32px 0;
+    flex-direction: row;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .mob-event-card {
+    flex: 1;
+  }
+
+  .mob-regime-card {
+    flex: 1;
+    margin-bottom: 0;
+  }
+
+  .mob-breadout-val {
+    font-size: clamp(16px, 1.8vw, 26px);
+  }
+
+  .mob-breadout-label {
+    font-size: clamp(7px, .7vw, 10px);
+  }
+
+  .mob-event-type-pill {
+    font-size: clamp(8px, .8vw, 11px);
+  }
+
+  .mob-event-name-row {
+    font-size: clamp(9px, .9vw, 12px);
+  }
+
+  .mob-phase-icon {
+    font-size: clamp(16px, 1.8vw, 26px);
+  }
+
+  .mob-phase-label {
+    font-size: clamp(7px, .7vw, 10px);
+  }
+
+  .mob-phase-desc {
+    font-size: clamp(7px, .7vw, 10px);
+  }
+
+  /* Tab bar — full width */
+  .mob-tab-bar {
+    left: 0;
+    right: 0;
+    transform: none;
+    width: 100%;
+    padding: 10px 10% 0;
+    justify-content: space-around;
+  }
+
+  .mob-tab-icon {
+    font-size: clamp(20px, 2vw, 28px);
+  }
+
+  .mob-tab-lbl {
+    font-size: clamp(8px, .8vw, 12px);
+  }
+
+  /* Detail screen */
+  .mob-det-header {
+    padding: 24px 32px 20px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .mob-big-element {
+    width: clamp(110px, 12vw, 160px);
+    height: clamp(110px, 12vw, 160px);
+  }
+
+  .mob-big-el-sym {
+    font-size: clamp(38px, 5vw, 60px);
+  }
+
+  .mob-det-company-name {
+    font-size: clamp(20px, 2.2vw, 30px);
+  }
+
+  .mob-el-data-table {
+    margin: 0 32px 16px;
+    max-width: 736px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .mob-el-data-val {
+    font-size: clamp(13px, 1.3vw, 17px);
+  }
+
+  .mob-el-data-label {
+    font-size: clamp(9px, .9vw, 12px);
+    width: 100px;
+  }
+
+  .mob-det-about,
+  .mob-signal-box,
+  .mob-det-links {
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 736px;
+  }
+
+  /* Stats section side by side on desktop */
+  #mobStatsSection .mob-el-data-row {
+    padding: 10px 14px;
+  }
+}
+
+/* Landscape phone fix */
+@media (max-height: 500px) and (orientation: landscape) {
+  .mob-view {
+    overflow: hidden;
+  }
+
+  .mob-screen {
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+    padding-bottom: 72px;
   }
 
   .mob-table-header {
     position: sticky;
     top: 0;
-  }
-}
-
-/* =========================================================
-   QUICK STATS SECTION
-   ========================================================= */
-
-.mob-stats-head {
-  font-size: 9px;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  color: var(--mob-text3);
-  padding: 10px 12px 6px;
-  border-bottom: 1px solid var(--mob-border);
-  font-family: 'Share Tech Mono', ui-monospace, monospace;
-}
-
-/* Loading shimmer for async values */
-@keyframes mob-shimmer {
-  0%   { opacity: .4; }
-  50%  { opacity: .8; }
-  100% { opacity: .4; }
-}
-
-.mob-el-data-val:not(:empty):contains("…") {
-  animation: mob-shimmer 1.2s ease-in-out infinite;
-  color: var(--mob-text3);
-}
-
-/* =========================================================
-   DETAIL SCREEN — LINKS SECTION
-   ========================================================= */
-
-.mob-det-links {
-  margin: 0 14px 14px;
-  background: var(--mob-bg3);
-  border: 1px solid var(--mob-border);
-  border-radius: 12px;
-  padding: 12px;
-}
-
-.mob-det-links-title {
-  font-size: 9px;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  color: var(--mob-text3);
-  margin-bottom: 10px;
-  font-family: 'Share Tech Mono', ui-monospace, monospace;
-}
-
-.mob-det-links-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.mob-det-link-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--mob-blue);
-  text-decoration: none;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(59,130,246,.2);
-  background: rgba(59,130,246,.06);
-  transition: border-color .15s, background .15s;
-  font-family: 'Share Tech Mono', ui-monospace, monospace;
-  letter-spacing: .03em;
-}
-
-.mob-det-link-item::before {
-  content: '→';
-  font-size: 11px;
-  opacity: .7;
-  flex-shrink: 0;
-}
-
-.mob-det-link-item:hover {
-  border-color: rgba(59,130,246,.5);
-  background: rgba(59,130,246,.12);
-  color: #93c5fd;
-}
-
-.mob-det-link-item:active {
-  transform: scale(.97);
-}
-
-/* =========================================================
-   LONE TILE FIX — prevents last-row tiles from over-stretching
-   ========================================================= */
-
-.mob-el {
-  max-width: 100%;
-}
-
-/* On desktop, cap tile width so lone tiles don't go full-width */
-@media (min-width: 901px) {
-  .mob-pt-master {
-    align-items: start;
+    padding: 10px 14px 8px;
   }
 
-  .mob-el-empty {
-    min-height: unset;
+  .mob-main-title {
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+
+  .mob-legend {
+    display: none;
   }
 }
