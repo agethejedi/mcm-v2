@@ -995,6 +995,8 @@ function injectMobileShell(symbols) {
         mobShowScreen("table");
       } else if (t === "events") {
         window.location.href = "/events.html";
+      } else if (t === "portfolio") {
+        window.location.href = "/portfolio.html";
       } else if (t === "perf") {
         window.location.href = "/performance.html";
       } else if (t === "play") {
