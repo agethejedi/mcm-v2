@@ -1515,6 +1515,7 @@ function updateCohortFocus(evt) {
     allFocusClasses.forEach((cls) => el.classList.remove(cls));
     // Remove any focus badge
     el.querySelector(".mob-row-focus-badge")?.remove();
+    el.querySelector(".mob-row-focus-badge-right")?.remove();
   });
 
   if (!focus) return;
@@ -1545,14 +1546,7 @@ function updateCohortFocus(evt) {
     if (s.cohort === focus.cohort) {
       label.classList.add("mob-row-focus", focus.cls);
 
-      // Add WATCH badge to the right of the row
-      // Find the last non-empty sibling tile in this row
-      // and append the badge after it as a separate grid element
-      const badge = document.createElement("div");
-      badge.className = "mob-row-focus-badge-right";
-      badge.innerHTML = `<span>${focus.label}</span>`;
-      // Place badge at the end of the row label itself but styled to appear on right
-      label.appendChild(badge);
+      // Badge removed — on backlog for better execution
     }
   });
 }
