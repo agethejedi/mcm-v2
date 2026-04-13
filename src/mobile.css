@@ -658,11 +658,12 @@
   align-items: center;
   gap: 3px;
   cursor: pointer;
-  padding: 4px 18px;
+  padding: 4px 10px;
   border-radius: 10px;
   border: none;
   background: transparent;
   box-shadow: none;
+  flex: 1;
 }
 
 .mob-tab:active { transform: scale(.88); }
