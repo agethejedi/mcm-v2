@@ -1489,3 +1489,30 @@
   0%,100% { opacity: 1; transform: scale(1); }
   50%      { opacity: .7; transform: scale(1.05); }
 }
+
+/* =========================================================
+   EVENT CARD — COMMENTARY + META
+   ========================================================= */
+
+.mob-event-commentary {
+  font-size: 11px;
+  color: var(--mob-text2);
+  line-height: 1.55;
+  padding: 8px 0 6px;
+  border-top: 1px solid var(--mob-border);
+  margin-top: 4px;
+}
+
+.mob-event-meta {
+  font-size: 10px;
+  color: var(--mob-text3);
+  letter-spacing: .04em;
+  padding-top: 5px;
+  font-family: 'Share Tech Mono', ui-monospace, monospace;
+}
+
+.mob-event-confirm {
+  font-family: 'Share Tech Mono', ui-monospace, monospace;
+  font-size: 8px;
+  letter-spacing: .06em;
+}
