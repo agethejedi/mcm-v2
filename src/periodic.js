@@ -820,8 +820,10 @@ function injectMobileShell(symbols) {
           </div>
           <div class="mob-event-name-row">
             <span class="mob-event-name-text" id="mobEventName">—</span>
-            <span class="mob-event-sub" id="mobEventSub"></span>
+            <span class="mob-event-confirm" id="mobEventConfirm"></span>
           </div>
+          <div class="mob-event-commentary" id="mobEventCommentary">—</div>
+          <div class="mob-event-meta" id="mobEventMeta">—</div>
         </div>
 
         <div class="mob-regime-card">
@@ -1223,9 +1225,21 @@ function mobRenderEventCard(evt, snap, symbols) {
   if (el("#mobEventLabel")) el("#mobEventLabel").textContent = evt.label || "—";
   if (el("#mobEventAsof")) el("#mobEventAsof").textContent = snap?._meta?.asof_local || "—";
   if (el("#mobEventName")) el("#mobEventName").textContent = evt.label || "—";
-  if (el("#mobEventSub")) {
-    el("#mobEventSub").textContent = "MCM active ›";
-    el("#mobEventSub").style.color = evt.toneClass === "evt-green" ? "#22c55e" : evt.toneClass === "evt-red" ? "#ef4444" : "#eab308";
+
+  // Confirm indicator
+  if (el("#mobEventConfirm")) {
+    el("#mobEventConfirm").textContent = "MCM active ›";
+    el("#mobEventConfirm").style.color = evt.toneClass === "evt-green" ? "#22c55e" : evt.toneClass === "evt-red" ? "#ef4444" : "#eab308";
+  }
+
+  // Commentary — the descriptive text explaining what's happening
+  if (el("#mobEventCommentary")) {
+    el("#mobEventCommentary").textContent = evt.sub || "—";
+  }
+
+  // Meta — breadth and leader stats
+  if (el("#mobEventMeta")) {
+    el("#mobEventMeta").textContent = evt.meta || "—";
   }
 
   // Breadth
