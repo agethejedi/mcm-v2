@@ -4,72 +4,1465 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>MCM | Performance</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/src/styles.css" />
+    <link rel="stylesheet" href="/src/mobile.css" />
+    <style>
+      /* =========================================================
+         MCM PERFORMANCE PAGE
+         ========================================================= */
+
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        --p-bg:      #070d16;
+        --p-bg2:     #0b1520;
+        --p-bg3:     #0f1d2e;
+        --p-border:  #162438;
+        --p-border2: #1e3450;
+        --p-text:    #ddeeff;
+        --p-text2:   #6a90b0;
+        --p-text3:   #2e4a64;
+        --p-green:   #22c55e;
+        --p-red:     #ef4444;
+        --p-yellow:  #eab308;
+        --p-blue:    #3b82f6;
+        --p-cyan:    #22d3ee;
+        --p-mono:    'Share Tech Mono', ui-monospace, monospace;
+      }
+
+      body {
+        background: var(--p-bg);
+        color: var(--p-text);
+        font-family: 'Rajdhani', sans-serif;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      body::before {
+        content: '';
+        position: fixed; inset: 0;
+        background:
+          radial-gradient(ellipse 70% 40% at 50% 0%, rgba(34,197,94,.04) 0%, transparent 60%),
+          radial-gradient(ellipse 50% 50% at 80% 100%, rgba(59,130,246,.04) 0%, transparent 60%);
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .perf-shell {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        position: relative;
+        z-index: 1;
+        padding-bottom: 80px;
+      }
+
+      /* ── HEADER ── */
+      .perf-header {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: rgba(7,13,22,.95);
+        backdrop-filter: blur(16px);
+        border-bottom: 1px solid var(--p-border);
+        padding: 14px 16px 12px;
+      }
+
+      .perf-header-row1 {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 4px;
+      }
+
+      .perf-brand {
+        font-family: var(--p-mono);
+        font-size: 10px;
+        letter-spacing: .15em;
+        color: var(--p-text2);
+      }
+
+      .perf-asof {
+        font-family: var(--p-mono);
+        font-size: 9px;
+        color: var(--p-text3);
+        letter-spacing: .06em;
+      }
+
+      .perf-title {
+        font-family: var(--p-mono);
+        font-size: 13px;
+        letter-spacing: .08em;
+        color: var(--p-text);
+        font-weight: 700;
+        line-height: 1.3;
+        margin-bottom: 10px;
+      }
+
+      /* User selector */
+      .perf-user-row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .perf-select {
+        background: rgba(6,14,26,.8);
+        border: 1px solid var(--p-border2);
+        color: var(--p-text);
+        padding: 8px 12px;
+        border-radius: 10px;
+        font-family: var(--p-mono);
+        font-size: 11px;
+        flex: 1;
+        outline: none;
+        -webkit-appearance: none;
+      }
+
+      .perf-select:focus {
+        border-color: rgba(59,130,246,.5);
+      }
+
+      /* ── TAB BAR ── */
+      .perf-tab-bar {
+        position: fixed;
+        bottom: 0; left: 0; right: 0;
+        height: 72px;
+        background: rgba(7,13,22,.96);
+        backdrop-filter: blur(20px);
+        border-top: 1px solid var(--p-border);
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-around;
+        padding: 10px 0 0;
+        z-index: 200;
+      }
+
+      .perf-tab {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        cursor: pointer;
+        padding: 4px 10px;
+        border: none;
+        background: transparent;
+        box-shadow: none;
+        border-radius: 10px;
+        color: var(--p-text3);
+        text-decoration: none;
+        flex: 1;
+      }
+
+      .perf-tab:active { transform: scale(.88); }
+      .perf-tab-icon { font-size: 20px; line-height: 1; }
+      .perf-tab-lbl {
+        font-family: var(--p-mono);
+        font-size: 8px;
+        letter-spacing: .08em;
+        color: var(--p-text3);
+      }
+      .perf-tab.active .perf-tab-lbl { color: var(--p-blue); }
+
+      /* ── MAIN ── */
+      .perf-main {
+        padding: 0 0 16px;
+      }
+
+      /* ── SECTION WRAPPER ── */
+      .perf-section {
+        margin: 12px 14px;
+      }
+
+      .perf-section-label {
+        font-family: var(--p-mono);
+        font-size: 9px;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+        color: var(--p-text3);
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      /* ── OVERALL SUMMARY CARDS ── */
+      .perf-summary-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 0;
+      }
+
+      .perf-stat {
+        background: var(--p-bg3);
+        border: 1px solid var(--p-border2);
+        border-radius: 12px;
+        padding: 12px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .perf-stat-label {
+        font-family: var(--p-mono);
+        font-size: 8px;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+        color: var(--p-text3);
+      }
+
+      .perf-stat-val {
+        font-family: var(--p-mono);
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--p-text);
+        line-height: 1;
+      }
+
+      .perf-stat-val.pos { color: var(--p-green); }
+      .perf-stat-val.neg { color: var(--p-red); }
+      .perf-stat-sub {
+        font-family: var(--p-mono);
+        font-size: 9px;
+        color: var(--p-text3);
+      }
+
+      /* ── PORTFOLIO SELECTOR TABS ── */
+      .perf-port-tabs {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        scrollbar-width: none;
+        padding-bottom: 2px;
+        margin-bottom: 10px;
+      }
+
+      .perf-port-tabs::-webkit-scrollbar { display: none; }
+
+      .perf-port-tab {
+        flex-shrink: 0;
+        padding: 7px 14px;
+        border-radius: 20px;
+        border: 1px solid var(--p-border2);
+        background: rgba(255,255,255,.02);
+        font-family: var(--p-mono);
+        font-size: 10px;
+        letter-spacing: .06em;
+        color: var(--p-text2);
+        cursor: pointer;
+        transition: all .15s;
+        white-space: nowrap;
+      }
+
+      .perf-port-tab.active {
+        border-color: rgba(59,130,246,.45);
+        background: rgba(59,130,246,.1);
+        color: #93c5fd;
+      }
+
+      /* ── PORTFOLIO HEADER CARD ── */
+      .perf-port-header {
+        background: var(--p-bg3);
+        border: 1px solid var(--p-border2);
+        border-radius: 14px;
+        padding: 14px;
+        margin-bottom: 10px;
+      }
+
+      .perf-port-name {
+        font-family: var(--p-mono);
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: .08em;
+        color: var(--p-text);
+        margin-bottom: 10px;
+      }
+
+      .perf-port-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+
+      .perf-port-stat {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+
+      .perf-port-stat-label {
+        font-family: var(--p-mono);
+        font-size: 7px;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+        color: var(--p-text3);
+      }
+
+      .perf-port-stat-val {
+        font-family: var(--p-mono);
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--p-text);
+        line-height: 1;
+      }
+
+      .perf-port-stat-val.pos { color: var(--p-green); }
+      .perf-port-stat-val.neg { color: var(--p-red); }
+
+      /* ── P&L BAR ── */
+      .perf-pnl-bar-wrap {
+        margin-top: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .perf-pnl-bar-label {
+        display: flex;
+        justify-content: space-between;
+        font-family: var(--p-mono);
+        font-size: 8px;
+        color: var(--p-text3);
+        letter-spacing: .06em;
+      }
+
+      .perf-pnl-bar-track {
+        height: 6px;
+        background: rgba(255,255,255,.06);
+        border-radius: 999px;
+        overflow: hidden;
+      }
+
+      .perf-pnl-bar-fill {
+        height: 100%;
+        border-radius: 999px;
+        transition: width .8s cubic-bezier(.4,0,.2,1);
+      }
+
+      .perf-pnl-bar-fill.pos {
+        background: linear-gradient(90deg, #16a34a, #22c55e);
+        box-shadow: 0 0 8px rgba(34,197,94,.4);
+      }
+
+      .perf-pnl-bar-fill.neg {
+        background: linear-gradient(90deg, #dc2626, #ef4444);
+        box-shadow: 0 0 8px rgba(239,68,68,.4);
+      }
+
+      /* ── POSITIONS ── */
+      .perf-position {
+        background: var(--p-bg3);
+        border: 1px solid var(--p-border2);
+        border-radius: 12px;
+        padding: 12px 14px;
+        margin-bottom: 8px;
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 6px 12px;
+        align-items: start;
+      }
+
+      .perf-pos-sym {
+        font-family: var(--p-mono);
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--p-cyan);
+        line-height: 1;
+        grid-row: span 2;
+        display: flex;
+        align-items: center;
+      }
+
+      .perf-pos-details {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+
+      .perf-pos-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--p-text);
+        line-height: 1;
+      }
+
+      .perf-pos-meta {
+        font-family: var(--p-mono);
+        font-size: 9px;
+        color: var(--p-text2);
+        letter-spacing: .03em;
+      }
+
+      .perf-pos-regime {
+        font-family: var(--p-mono);
+        font-size: 8px;
+        color: var(--p-blue);
+        letter-spacing: .04em;
+        margin-top: 2px;
+      }
+
+      .perf-pos-right {
+        text-align: right;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        align-items: flex-end;
+        grid-row: span 2;
+      }
+
+      .perf-pos-price {
+        font-family: var(--p-mono);
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--p-text);
+      }
+
+      .perf-pos-pnl {
+        font-family: var(--p-mono);
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .perf-pos-pnl.pos { color: var(--p-green); }
+      .perf-pos-pnl.neg { color: var(--p-red); }
+
+      .perf-pos-pct {
+        font-family: var(--p-mono);
+        font-size: 9px;
+      }
+
+      .perf-pos-pct.pos { color: var(--p-green); }
+      .perf-pos-pct.neg { color: var(--p-red); }
+
+      /* Basis row */
+      .perf-pos-basis-row {
+        grid-column: 1 / -1;
+        display: flex;
+        gap: 12px;
+        padding-top: 8px;
+        border-top: 1px solid var(--p-border);
+        margin-top: 4px;
+      }
+
+      .perf-pos-basis-item {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        flex: 1;
+      }
+
+      .perf-pos-basis-label {
+        font-family: var(--p-mono);
+        font-size: 7px;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+        color: var(--p-text3);
+      }
+
+      .perf-pos-basis-val {
+        font-family: var(--p-mono);
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--p-text2);
+      }
+
+      /* ── COHORT BREAKDOWN BAR ── */
+      .perf-cohort-breakdown {
+        background: var(--p-bg3);
+        border: 1px solid var(--p-border2);
+        border-radius: 12px;
+        padding: 12px 14px;
+        margin-bottom: 8px;
+      }
+
+      .perf-cohort-title {
+        font-family: var(--p-mono);
+        font-size: 9px;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+        color: var(--p-text3);
+        margin-bottom: 10px;
+      }
+
+      .perf-cohort-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 7px;
+      }
+
+      .perf-cohort-name {
+        font-family: var(--p-mono);
+        font-size: 9px;
+        color: var(--p-text2);
+        width: 90px;
+        flex-shrink: 0;
+        letter-spacing: .04em;
+      }
+
+      .perf-cohort-bar-track {
+        flex: 1;
+        height: 5px;
+        background: rgba(255,255,255,.05);
+        border-radius: 999px;
+        overflow: hidden;
+      }
+
+      .perf-cohort-bar-fill {
+        height: 100%;
+        border-radius: 999px;
+        transition: width .8s cubic-bezier(.4,0,.2,1);
+      }
+
+      .perf-cohort-pct {
+        font-family: var(--p-mono);
+        font-size: 9px;
+        color: var(--p-text3);
+        width: 32px;
+        text-align: right;
+        flex-shrink: 0;
+      }
+
+      /* ── REGIME PERFORMANCE TABLE ── */
+      .perf-regime-table {
+        background: var(--p-bg3);
+        border: 1px solid var(--p-border2);
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 8px;
+      }
+
+      .perf-regime-head {
+        font-family: var(--p-mono);
+        font-size: 9px;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+        color: var(--p-text3);
+        padding: 10px 14px 8px;
+        border-bottom: 1px solid var(--p-border);
+      }
+
+      .perf-regime-row {
+        display: flex;
+        align-items: center;
+        padding: 9px 14px;
+        border-bottom: 1px solid var(--p-border);
+        gap: 8px;
+      }
+
+      .perf-regime-row:last-child { border-bottom: none; }
+
+      .perf-regime-dot {
+        width: 8px; height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+
+      .perf-regime-name {
+        font-family: var(--p-mono);
+        font-size: 10px;
+        color: var(--p-text2);
+        flex: 1;
+        letter-spacing: .04em;
+      }
+
+      .perf-regime-count {
+        font-family: var(--p-mono);
+        font-size: 9px;
+        color: var(--p-text3);
+        width: 50px;
+        text-align: right;
+      }
+
+      .perf-regime-pnl {
+        font-family: var(--p-mono);
+        font-size: 11px;
+        font-weight: 700;
+        width: 70px;
+        text-align: right;
+      }
+
+      .perf-regime-pnl.pos { color: var(--p-green); }
+      .perf-regime-pnl.neg { color: var(--p-red); }
+
+      /* ── EMPTY STATE ── */
+      .perf-empty {
+        font-family: var(--p-mono);
+        font-size: 11px;
+        color: var(--p-text3);
+        text-align: center;
+        padding: 32px 16px;
+        letter-spacing: .06em;
+        line-height: 1.6;
+      }
+
+      /* ── LOADING ── */
+      .perf-loading {
+        font-family: var(--p-mono);
+        font-size: 10px;
+        color: var(--p-text3);
+        text-align: center;
+        padding: 24px;
+        letter-spacing: .1em;
+        animation: perf-blink 1.2s ease-in-out infinite;
+      }
+
+      @keyframes perf-blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+      /* ── DESKTOP ── */
+      @media (min-width: 768px) {
+        .perf-main { max-width: 800px; margin: 0 auto; }
+        .perf-summary-grid { grid-template-columns: repeat(4, 1fr); }
+      }
+    </style>
   </head>
+
   <body>
-    <header>
-      <div class="brand">
-        <div class="logo"></div>
-        <div>
-          <h1>MCM — PERFORMANCE</h1>
-          <div class="sub">Evidence console (Live vs Event Replay)</div>
+    <div class="perf-shell">
+
+      <!-- HEADER -->
+      <div class="perf-header">
+        <div class="perf-header-row1">
+          <span class="perf-brand">RISKXLABS / MCM</span>
+          <span class="perf-asof" id="perfAsof">—</span>
+        </div>
+        <div class="perf-title">PORTFOLIO<br>PERFORMANCE</div>
+        <div class="perf-user-row" id="perfUserRow" style="display:none;">
+          <select id="perfUserSelect" class="perf-select">
+            <option value="">Select user…</option>
+          </select>
         </div>
       </div>
 
-      <div class="actions">
-        <a class="navlink" href="/">Home</a>
-        <a class="navlink" href="/events.html">Events</a>
-        <a class="navlink active" href="/performance.html">Performance</a>
-        <a class="navlink" href="/live.html">Live Dashboard</a>
-        <a class="navlink" href="/faq.html">FAQ / Playbook</a>
-      </div>
-    </header>
-
-    <main>
-      <div class="perfBar">
-        <div class="modeToggle">
-          <button class="pillbtn active" id="modeLive">Live</button>
-          <button class="pillbtn" id="modeReplay">Event Replay</button>
-        </div>
-
-        <div class="eventSelect hidden" id="eventSelectWrap">
-          <select id="eventSelect"></select>
-          <div class="badgeRow" id="eventBadges"></div>
-        </div>
-
-        <div class="perfLinks">
-          <a class="btn secondary" id="linkOpenEvent" href="/events.html">Open Event</a>
-          <a class="btn secondary" id="linkOpenLive" href="/live.html">Open Live Dashboard</a>
-          <button class="btn secondary" id="copyLink">Copy Link</button>
+      <div class="perf-main" id="perfMain">
+        <div class="perf-empty" id="perfEmptyState">
+          Select a user to view portfolio performance.
         </div>
       </div>
 
-      <div class="cardWide">
-        <div class="cardWideTitle" id="perfTitle">Live Performance (Today)</div>
-        <div class="cardWideSub" id="perfSub">Loading…</div>
-        <div class="tableWrap">
-          <table class="tbl" id="perfTable">
-            <thead>
-              <tr>
-                <th>Symbol</th>
-                <th>Last</th>
-                <th>$ Chg</th>
-                <th>% Chg</th>
-                <th>High vs Baseline</th>
-                <th>Reversal</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
+      <!-- TAB BAR -->
+      <div class="perf-tab-bar">
+        <a class="perf-tab" href="/">
+          <div class="perf-tab-icon">⊞</div>
+          <div class="perf-tab-lbl">TABLE</div>
+        </a>
+        <a class="perf-tab" href="/events.html">
+          <div class="perf-tab-icon">⚡</div>
+          <div class="perf-tab-lbl">EVENTS</div>
+        </a>
+        <a class="perf-tab" href="/portfolio.html">
+          <div class="perf-tab-icon">💼</div>
+          <div class="perf-tab-lbl">PORTFOLIO</div>
+        </a>
+        <a class="perf-tab active" href="/performance.html">
+          <div class="perf-tab-icon">📊</div>
+          <div class="perf-tab-lbl">PERF</div>
+        </a>
+        <a class="perf-tab" href="/faq.html">
+          <div class="perf-tab-icon">📋</div>
+          <div class="perf-tab-lbl">PLAYBOOK</div>
+        </a>
       </div>
 
-      <div class="cardWide hidden" id="replayNote">
-        <div class="cardWideTitle">Replay Mode (coming online)</div>
-        <div class="cardWideSub">This page is event-aware now. Next step is writing daily event performance records into the library and replaying them here.</div>
-      </div>
-    </main>
+    </div>
 
-    <script type="module" src="/src/performance.js"></script>
+    <script type="module">
+      import { getSnapshot } from "/src/api.js";
+
+      const $ = (sel) => document.querySelector(sel);
+
+      const DOW30_NAMES = {
+        MMM:"3M",AXP:"American Express",AMGN:"Amgen",AAPL:"Apple",
+        BA:"Boeing",CAT:"Caterpillar",CVX:"Chevron",CSCO:"Cisco",
+        KO:"Coca-Cola",DIS:"Disney",GS:"Goldman Sachs",HD:"Home Depot",
+        HON:"Honeywell",IBM:"IBM",JNJ:"Johnson & Johnson",JPM:"JPMorgan",
+        MCD:"McDonald's",MRK:"Merck",MSFT:"Microsoft",NKE:"Nike",
+        PG:"Procter & Gamble",CRM:"Salesforce",SHW:"Sherwin-Williams",
+        TRV:"Travelers",UNH:"UnitedHealth",VZ:"Verizon",V:"Visa",
+        WMT:"Walmart",NVDA:"NVIDIA",AMZN:"Amazon"
+      };
+
+      const REGIME_COLORS = {
+        "Panic / Liquidation":       "#ef4444",
+        "Risk-Off Rotation":         "#3b82f6",
+        "Macro Repricing":           "#f97316",
+        "Recovery / Mean Reversion": "#22c55e",
+        "Earnings-Driven":           "#eab308",
+        "Risk-On":                   "#22c55e",
+        "Risk-Off":                  "#3b82f6",
+        "Self-Directed":             "#a78bfa",
+      };
+
+      const COHORT_COLORS = {
+        "Liquidity Leaders":      "#60a5fa",
+        "Reflex / Growth":        "#c084fc",
+        "Macro-Sensitive":        "#34d399",
+        "Cyclicals / Industrials":"#fb923c",
+        "Defensive / Yield":      "#f87171",
+      };
+
+      let state = {
+        users: [],
+        selectedUserId: null,
+        portfolios: [],
+        selectedPortfolioId: null,
+        snap: {},
+        allOrders: {},   // portfolioId -> orders array
+        allPortfolios: {} // portfolioId -> portfolio object
+      };
+
+      /* ── HELPERS ── */
+      function fmtMoney(n, showSign=false) {
+        const x = Number(n);
+        if (!Number.isFinite(x)) return "—";
+        const s = Math.abs(x).toLocaleString(undefined, {style:"currency",currency:"USD",minimumFractionDigits:2,maximumFractionDigits:2});
+        if (showSign) return (x >= 0 ? "+" : "-") + s;
+        return (x < 0 ? "-" : "") + s;
+      }
+
+      function fmtPct(n, showSign=true) {
+        if (!Number.isFinite(n)) return "—";
+        return (showSign && n >= 0 ? "+" : "") + (n * 100).toFixed(2) + "%";
+      }
+
+      function pnlClass(n) {
+        const x = Number(n);
+        if (!Number.isFinite(x) || x === 0) return "";
+        return x > 0 ? "pos" : "neg";
+      }
+
+      /* ── API ── */
+      async function getJson(url) {
+        const r = await fetch(url);
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(d?.error || `Failed: ${r.status}`);
+        return d;
+      }
+
+      async function loadUsers() {
+        const data = await getJson("/api/users");
+        state.users = Array.isArray(data?.items) ? data.items : [];
+        renderUserSelect();
+      }
+
+      async function loadPortfoliosForUser(userId) {
+        const data = await getJson(`/api/portfolios?user_id=${userId}`);
+        const items = Array.isArray(data?.items) ? data.items : [];
+        // Accumulate portfolios from all users
+        const existing = state.portfolios.filter(p => p.user_id !== userId);
+        state.portfolios = [...existing, ...items];
+      }
+
+      async function loadOrdersForPortfolio(portfolioId) {
+        if (state.allOrders[portfolioId]) return; // already loaded
+        const data = await getJson(`/api/orders?portfolio_id=${portfolioId}`);
+        state.allOrders[portfolioId] = Array.isArray(data?.items) ? data.items : [];
+        state.allPortfolios[portfolioId] = data?.portfolio || null;
+      }
+
+      /* ── POSITIONS CALCULATOR ── */
+      function calcPositions(orders) {
+        // Group executed orders by symbol
+        const bySymbol = {};
+        for (const o of orders) {
+          if (o.status !== "executed") continue;
+          if (!bySymbol[o.symbol]) {
+            bySymbol[o.symbol] = { buys: [], sells: [] };
+          }
+          if (o.side === "buy") bySymbol[o.symbol].buys.push(o);
+          if (o.side === "sell") bySymbol[o.symbol].sells.push(o);
+        }
+
+        const positions = [];
+        for (const [symbol, { buys, sells }] of Object.entries(bySymbol)) {
+          let totalShares = 0;
+          let totalCost = 0;
+          let regimes = [];
+
+          for (const b of buys) {
+            const qty = Number(b.quantity);
+            const px = Number(b.executed_price);
+            if (Number.isFinite(qty) && Number.isFinite(px)) {
+              totalShares += qty;
+              totalCost += qty * px;
+              if (b.event_rationale) regimes.push(b.event_rationale);
+            }
+          }
+
+          for (const s of sells) {
+            const qty = Number(s.quantity);
+            const avgCost = totalShares > 0 ? totalCost / totalShares : 0;
+            if (Number.isFinite(qty)) {
+              totalShares -= qty;
+              totalCost -= qty * avgCost;
+            }
+          }
+
+          if (totalShares > 0.001) {
+            const avgCost = totalCost / totalShares;
+            positions.push({
+              symbol,
+              name: DOW30_NAMES[symbol] || symbol,
+              shares: totalShares,
+              avgCost,
+              totalCost,
+              // Regime: most recent buy rationale
+              regime: regimes[regimes.length - 1] || null,
+            });
+          }
+        }
+
+        return positions;
+      }
+
+      function calcPortfolioStats(portfolio, orders, snap) {
+        const startingCash = Number(portfolio?.starting_cash || 10000);
+        let cashBalance = startingCash;
+        let realizedPnl = 0;
+        let totalTrades = 0;
+        let winTrades = 0;
+
+        // Track FIFO cost basis for realized P&L
+        const costQueues = {}; // symbol -> [{qty, price}]
+
+        const executed = orders.filter(o => o.status === "executed")
+          .sort((a,b) => new Date(a.executed_at||a.created_at) - new Date(b.executed_at||b.created_at));
+
+        for (const o of executed) {
+          const qty = Number(o.quantity);
+          const px = Number(o.executed_price);
+          if (!Number.isFinite(qty) || !Number.isFinite(px)) continue;
+
+          if (o.side === "buy") {
+            cashBalance -= qty * px;
+            if (!costQueues[o.symbol]) costQueues[o.symbol] = [];
+            costQueues[o.symbol].push({ qty, price: px });
+          }
+
+          if (o.side === "sell") {
+            cashBalance += qty * px;
+            let remaining = qty;
+            const queue = costQueues[o.symbol] || [];
+            let costOfSold = 0;
+
+            while (remaining > 0 && queue.length > 0) {
+              const lot = queue[0];
+              const used = Math.min(remaining, lot.qty);
+              costOfSold += used * lot.price;
+              lot.qty -= used;
+              remaining -= used;
+              if (lot.qty < 0.001) queue.shift();
+            }
+
+            const pnl = qty * px - costOfSold;
+            realizedPnl += pnl;
+            totalTrades++;
+            if (pnl > 0) winTrades++;
+          }
+        }
+
+        // Current positions value
+        const positions = calcPositions(orders);
+        let positionsValue = 0;
+        for (const pos of positions) {
+          const currentPrice = Number(snap?.[pos.symbol]?.last);
+          if (Number.isFinite(currentPrice)) {
+            positionsValue += pos.shares * currentPrice;
+          } else {
+            positionsValue += pos.totalCost; // fallback to cost
+          }
+        }
+
+        const totalValue = cashBalance + positionsValue;
+        const totalReturn = totalValue - startingCash;
+        const totalReturnPct = startingCash > 0 ? totalReturn / startingCash : 0;
+        const winRate = totalTrades > 0 ? winTrades / totalTrades : null;
+
+        return {
+          startingCash,
+          cashBalance,
+          positionsValue,
+          totalValue,
+          totalReturn,
+          totalReturnPct,
+          realizedPnl,
+          winRate,
+          totalTrades,
+          positions,
+        };
+      }
+
+      function calcRegimeBreakdown(orders) {
+        const regimes = {};
+        for (const o of orders) {
+          if (o.status !== "executed") continue;
+          const r = o.event_rationale || "Untagged";
+          if (!regimes[r]) regimes[r] = { count: 0, pnl: 0 };
+          regimes[r].count++;
+          // Simple: executed sells contribute P&L estimate
+          // For display purposes we just show trade count per regime
+        }
+        return regimes;
+      }
+
+      function calcCohortBreakdown(positions, snap) {
+        const cohorts = {};
+        let total = 0;
+
+        for (const pos of positions) {
+          const currentPrice = Number(snap?.[pos.symbol]?.last) || pos.avgCost;
+          const val = pos.shares * currentPrice;
+          const cohort = Object.entries(DOW30_NAMES).includes(pos.symbol)
+            ? "—"
+            : "—";
+
+          // Get cohort from orders
+          total += val;
+        }
+
+        return { cohorts, total };
+      }
+
+      /* ── RENDER ── */
+      function renderUserSelect() {
+        const sel = $("#perfUserSelect");
+        if (!sel) return;
+        sel.innerHTML = `<option value="">Select user…</option>` +
+          state.users.map(u => `<option value="${u.id}">${u.name}</option>`).join("");
+      }
+
+      function showLoading() {
+        const main = $("#perfMain");
+        if (main) main.innerHTML = `<div class="perf-loading">LOADING PERFORMANCE DATA…</div>`;
+      }
+
+      function showEmpty(msg = "No data available.") {
+        const main = $("#perfMain");
+        if (main) main.innerHTML = `<div class="perf-empty">${msg}</div>`;
+      }
+
+      async function renderUserPerformance(userId) {
+        showLoading();
+
+        await loadPortfoliosForUser(userId);
+
+        if (!state.portfolios.length) {
+          showEmpty("No portfolios found for this user.");
+          return;
+        }
+
+        // Load all portfolios' orders in parallel
+        await Promise.all(state.portfolios.map(p => loadOrdersForPortfolio(p.id)));
+
+        // Get all symbols across all portfolios for snapshot
+        const allSymbols = new Set();
+        for (const p of state.portfolios) {
+          const orders = state.allOrders[p.id] || [];
+          orders.forEach(o => allSymbols.add(o.symbol));
+        }
+
+        // Fetch live prices
+        try {
+          const snap = await getSnapshot([...allSymbols]);
+          state.snap = snap || {};
+          const asof = snap?._meta?.asof_local || snap?._meta?.asof_market || "—";
+          const asofEl = $("#perfAsof");
+          if (asofEl) asofEl.textContent = asof;
+        } catch { state.snap = {}; }
+
+        // Calculate stats for each portfolio
+        const portfolioStats = state.portfolios.map(p => ({
+          portfolio: p,
+          orders: state.allOrders[p.id] || [],
+          stats: calcPortfolioStats(p, state.allOrders[p.id] || [], state.snap),
+        }));
+
+        // Overall user stats
+        const totalValue = portfolioStats.reduce((s, ps) => s + ps.stats.totalValue, 0);
+        const totalStarting = portfolioStats.reduce((s, ps) => s + ps.stats.startingCash, 0);
+        const totalReturn = totalValue - totalStarting;
+        const totalReturnPct = totalStarting > 0 ? totalReturn / totalStarting : 0;
+        const totalPositions = portfolioStats.reduce((s, ps) => s + ps.stats.positions.length, 0);
+        const totalTrades = portfolioStats.reduce((s, ps) => s + ps.stats.totalTrades, 0);
+
+        renderMain(portfolioStats, { totalValue, totalStarting, totalReturn, totalReturnPct, totalPositions, totalTrades });
+      }
+
+      function renderMain(portfolioStats, overall) {
+        const main = $("#perfMain");
+        if (!main) return;
+
+        // Set active portfolio to first one
+        state.selectedPortfolioId = portfolioStats[0]?.portfolio?.id || null;
+
+        main.innerHTML = buildHTML(portfolioStats, overall);
+
+        // Wire portfolio tab clicks
+        main.querySelectorAll(".perf-port-tab").forEach(tab => {
+          tab.addEventListener("click", () => {
+            const pid = Number(tab.getAttribute("data-pid"));
+            state.selectedPortfolioId = pid;
+
+            // Update active tab
+            main.querySelectorAll(".perf-port-tab").forEach(t => t.classList.remove("active"));
+            tab.classList.add("active");
+
+            // Show the right portfolio detail
+            main.querySelectorAll(".perf-port-detail").forEach(d => {
+              d.style.display = Number(d.getAttribute("data-pid")) === pid ? "block" : "none";
+            });
+          });
+        });
+      }
+
+      function buildHTML(portfolioStats, overall) {
+        const pnlClass = overall.totalReturn >= 0 ? "pos" : "neg";
+        const pnlBarPct = Math.min(Math.abs(overall.totalReturnPct) * 100 * 5, 100); // scale for visibility
+
+        let html = `
+          <!-- OVERALL SUMMARY -->
+          <div class="perf-section">
+            <div class="perf-section-label">
+              <span>Overall Performance</span>
+              <span style="color:var(--p-text2);font-size:9px;">${state.portfolios.length} portfolio${state.portfolios.length !== 1 ? "s" : ""}</span>
+            </div>
+
+            <div class="perf-summary-grid">
+              <div class="perf-stat">
+                <span class="perf-stat-label">Total Value</span>
+                <span class="perf-stat-val">${fmtMoney(overall.totalValue)}</span>
+                <span class="perf-stat-sub">Started ${fmtMoney(overall.totalStarting)}</span>
+              </div>
+              <div class="perf-stat">
+                <span class="perf-stat-label">Total Return</span>
+                <span class="perf-stat-val ${pnlClass}">${fmtMoney(overall.totalReturn, true)}</span>
+                <span class="perf-stat-sub ${pnlClass}">${fmtPct(overall.totalReturnPct)}</span>
+              </div>
+              <div class="perf-stat">
+                <span class="perf-stat-label">Positions</span>
+                <span class="perf-stat-val">${overall.totalPositions}</span>
+                <span class="perf-stat-sub">open</span>
+              </div>
+              <div class="perf-stat">
+                <span class="perf-stat-label">Trades</span>
+                <span class="perf-stat-val">${overall.totalTrades}</span>
+                <span class="perf-stat-sub">executed</span>
+              </div>
+            </div>
+
+            <!-- Overall P&L bar -->
+            <div class="perf-pnl-bar-wrap" style="margin-top:10px;">
+              <div class="perf-pnl-bar-label">
+                <span>Return vs Starting Capital</span>
+                <span class="${pnlClass}">${fmtPct(overall.totalReturnPct)}</span>
+              </div>
+              <div class="perf-pnl-bar-track">
+                <div class="perf-pnl-bar-fill ${pnlClass}" style="width:${pnlBarPct}%"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PORTFOLIO TABS -->
+          <div class="perf-section">
+            <div class="perf-section-label">Portfolio Detail</div>
+            <div class="perf-port-tabs">
+              ${portfolioStats.map((ps, i) => `
+                <div class="perf-port-tab ${i === 0 ? "active" : ""}" data-pid="${ps.portfolio.id}">
+                  ${ps.portfolio.name}
+                </div>
+              `).join("")}
+            </div>
+
+            ${portfolioStats.map((ps, i) => buildPortfolioDetail(ps, i === 0)).join("")}
+          </div>
+        `;
+
+        return html;
+      }
+
+      function buildPortfolioDetail(ps, visible) {
+        const { portfolio, orders, stats } = ps;
+        const pid = portfolio.id;
+        const pnlCls = stats.totalReturn >= 0 ? "pos" : "neg";
+        const barPct = Math.min(Math.abs(stats.totalReturnPct) * 100 * 5, 100);
+
+        // Regime breakdown
+        const regimeMap = {};
+        for (const o of orders) {
+          if (o.status !== "executed") continue;
+          const r = o.event_rationale || "Untagged";
+          if (!regimeMap[r]) regimeMap[r] = { count: 0 };
+          regimeMap[r].count++;
+        }
+
+        // Cohort breakdown by position value
+        const cohortMap = {};
+        let totalPosVal = 0;
+        for (const pos of stats.positions) {
+          const currentPrice = Number(state.snap?.[pos.symbol]?.last) || pos.avgCost;
+          const val = pos.shares * currentPrice;
+          // Get cohort from orders
+          const order = orders.find(o => o.symbol === pos.symbol && o.cohort);
+          const cohort = order?.cohort || "Other";
+          cohortMap[cohort] = (cohortMap[cohort] || 0) + val;
+          totalPosVal += val;
+        }
+
+        return `
+          <div class="perf-port-detail" data-pid="${pid}" style="display:${visible ? "block" : "none"}">
+
+            <!-- Portfolio header -->
+            <div class="perf-port-header">
+              <div class="perf-port-name">${portfolio.name}</div>
+              <div class="perf-port-stats">
+                <div class="perf-port-stat">
+                  <span class="perf-port-stat-label">Total Value</span>
+                  <span class="perf-port-stat-val">${fmtMoney(stats.totalValue)}</span>
+                </div>
+                <div class="perf-port-stat">
+                  <span class="perf-port-stat-label">Cash</span>
+                  <span class="perf-port-stat-val">${fmtMoney(stats.cashBalance)}</span>
+                </div>
+                <div class="perf-port-stat">
+                  <span class="perf-port-stat-label">Return</span>
+                  <span class="perf-port-stat-val ${pnlCls}">${fmtPct(stats.totalReturnPct)}</span>
+                </div>
+              </div>
+              <div class="perf-pnl-bar-wrap" style="margin-top:12px;">
+                <div class="perf-pnl-bar-label">
+                  <span>P&L vs Starting $${(stats.startingCash/1000).toFixed(0)}K</span>
+                  <span class="${pnlCls}">${fmtMoney(stats.totalReturn, true)}</span>
+                </div>
+                <div class="perf-pnl-bar-track">
+                  <div class="perf-pnl-bar-fill ${pnlCls}" style="width:${barPct}%"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Open Positions -->
+            <div class="perf-section-label" style="margin:0 0 8px;">
+              <span>Open Positions (${stats.positions.length})</span>
+            </div>
+
+            ${stats.positions.length === 0
+              ? `<div class="perf-empty" style="padding:16px;">No open positions.</div>`
+              : stats.positions.map(pos => buildPositionCard(pos)).join("")
+            }
+
+            <!-- Cohort breakdown -->
+            ${totalPosVal > 0 ? buildCohortBreakdown(cohortMap, totalPosVal) : ""}
+
+            <!-- Regime breakdown -->
+            ${Object.keys(regimeMap).length > 0 ? buildRegimeBreakdown(regimeMap) : ""}
+
+          </div>
+        `;
+      }
+
+      function buildPositionCard(pos) {
+        const currentPrice = Number(state.snap?.[pos.symbol]?.last);
+        const hasLive = Number.isFinite(currentPrice) && currentPrice > 0;
+        const livePrice = hasLive ? currentPrice : pos.avgCost;
+
+        const currentValue = pos.shares * livePrice;
+        const pnl = currentValue - pos.totalCost;
+        const pnlPct = pos.totalCost > 0 ? pnl / pos.totalCost : 0;
+        const pnlCls = pnl >= 0 ? "pos" : "neg";
+
+        const regimeColor = pos.regime ? (REGIME_COLORS[pos.regime] || "var(--p-text3)") : "var(--p-text3)";
+
+        return `
+          <div class="perf-position">
+            <div class="perf-pos-sym">${pos.symbol}</div>
+            <div class="perf-pos-details">
+              <div class="perf-pos-name">${pos.name}</div>
+              <div class="perf-pos-meta">${pos.shares % 1 === 0 ? pos.shares : pos.shares.toFixed(2)} shares</div>
+              ${pos.regime ? `<div class="perf-pos-regime" style="color:${regimeColor}">● ${pos.regime}</div>` : ""}
+            </div>
+            <div class="perf-pos-right">
+              <div class="perf-pos-price">${hasLive ? fmtMoney(livePrice) : "—"}</div>
+              <div class="perf-pos-pnl ${pnlCls}">${fmtMoney(pnl, true)}</div>
+              <div class="perf-pos-pct ${pnlCls}">${fmtPct(pnlPct)}</div>
+            </div>
+            <div class="perf-pos-basis-row">
+              <div class="perf-pos-basis-item">
+                <span class="perf-pos-basis-label">Avg Cost</span>
+                <span class="perf-pos-basis-val">${fmtMoney(pos.avgCost)}</span>
+              </div>
+              <div class="perf-pos-basis-item">
+                <span class="perf-pos-basis-label">Total Basis</span>
+                <span class="perf-pos-basis-val">${fmtMoney(pos.totalCost)}</span>
+              </div>
+              <div class="perf-pos-basis-item">
+                <span class="perf-pos-basis-label">Mkt Value</span>
+                <span class="perf-pos-basis-val">${fmtMoney(currentValue)}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      function buildCohortBreakdown(cohortMap, totalVal) {
+        const entries = Object.entries(cohortMap).sort((a,b) => b[1] - a[1]);
+        if (!entries.length) return "";
+
+        const rows = entries.map(([cohort, val]) => {
+          const pct = totalVal > 0 ? val / totalVal : 0;
+          const color = COHORT_COLORS[cohort] || "var(--p-blue)";
+          return `
+            <div class="perf-cohort-row">
+              <div class="perf-cohort-name">${cohort}</div>
+              <div class="perf-cohort-bar-track">
+                <div class="perf-cohort-bar-fill" style="width:${(pct*100).toFixed(1)}%;background:${color};"></div>
+              </div>
+              <div class="perf-cohort-pct">${(pct*100).toFixed(0)}%</div>
+            </div>
+          `;
+        }).join("");
+
+        return `
+          <div class="perf-cohort-breakdown">
+            <div class="perf-cohort-title">Cohort Allocation</div>
+            ${rows}
+          </div>
+        `;
+      }
+
+      function buildRegimeBreakdown(regimeMap) {
+        const entries = Object.entries(regimeMap).sort((a,b) => b[1].count - a[1].count);
+
+        const rows = entries.map(([regime, data]) => {
+          const color = REGIME_COLORS[regime] || "var(--p-text3)";
+          return `
+            <div class="perf-regime-row">
+              <div class="perf-regime-dot" style="background:${color};box-shadow:0 0 6px ${color}55;"></div>
+              <div class="perf-regime-name">${regime}</div>
+              <div class="perf-regime-count">${data.count} trade${data.count !== 1 ? "s" : ""}</div>
+            </div>
+          `;
+        }).join("");
+
+        return `
+          <div class="perf-regime-table">
+            <div class="perf-regime-head">Trades by Regime</div>
+            ${rows}
+          </div>
+        `;
+      }
+
+      /* ── RENDER ALL USERS ── */
+      async function renderAllUsers() {
+        showLoading();
+
+        await loadUsers();
+
+        if (!state.users.length) {
+          showEmpty("No users found.");
+          return;
+        }
+
+        // Load all portfolios for all users in parallel
+        await Promise.all(state.users.map(u => loadPortfoliosForUser(u.id).catch(() => {})));
+
+        // Flatten all portfolios
+        const allPortfolios = state.portfolios; // already all loaded
+
+        if (!allPortfolios.length) {
+          showEmpty("No portfolios found.");
+          return;
+        }
+
+        // Load all orders in parallel
+        await Promise.all(allPortfolios.map(p => loadOrdersForPortfolio(p.id).catch(() => {})));
+
+        // Collect all symbols
+        const allSymbols = new Set();
+        for (const p of allPortfolios) {
+          (state.allOrders[p.id] || []).forEach(o => allSymbols.add(o.symbol));
+        }
+
+        // Fetch live prices once
+        try {
+          const snap = await getSnapshot([...allSymbols]);
+          state.snap = snap || {};
+          const asof = snap?._meta?.asof_local || snap?._meta?.asof_market || "—";
+          const asofEl = $("#perfAsof");
+          if (asofEl) asofEl.textContent = asof;
+        } catch { state.snap = {}; }
+
+        // Group portfolios by user
+        const userMap = {};
+        for (const u of state.users) {
+          userMap[u.id] = { user: u, portfolios: [] };
+        }
+        for (const p of allPortfolios) {
+          if (userMap[p.user_id]) {
+            userMap[p.user_id].portfolios.push(p);
+          }
+        }
+
+        const main = $("#perfMain");
+        if (!main) return;
+
+        let html = "";
+
+        // Overall totals across all users
+        let grandValue = 0, grandStarting = 0, grandPositions = 0, grandTrades = 0;
+
+        const userSections = [];
+
+        for (const { user, portfolios } of Object.values(userMap)) {
+          if (!portfolios.length) continue;
+
+          const portfolioStats = portfolios.map(p => ({
+            portfolio: p,
+            orders: state.allOrders[p.id] || [],
+            stats: calcPortfolioStats(p, state.allOrders[p.id] || [], state.snap),
+          }));
+
+          const userValue    = portfolioStats.reduce((s, ps) => s + ps.stats.totalValue, 0);
+          const userStarting = portfolioStats.reduce((s, ps) => s + ps.stats.startingCash, 0);
+          const userReturn   = userValue - userStarting;
+          const userReturnPct = userStarting > 0 ? userReturn / userStarting : 0;
+          const userPositions = portfolioStats.reduce((s, ps) => s + ps.stats.positions.length, 0);
+          const userTrades   = portfolioStats.reduce((s, ps) => s + ps.stats.totalTrades, 0);
+
+          grandValue    += userValue;
+          grandStarting += userStarting;
+          grandPositions += userPositions;
+          grandTrades   += userTrades;
+
+          userSections.push({ user, portfolioStats, userValue, userStarting, userReturn, userReturnPct, userPositions, userTrades });
+        }
+
+        const grandReturn    = grandValue - grandStarting;
+        const grandReturnPct = grandStarting > 0 ? grandReturn / grandStarting : 0;
+        const grandPnlCls    = grandReturn >= 0 ? "pos" : "neg";
+        const grandBarPct    = Math.min(Math.abs(grandReturnPct) * 100 * 5, 100);
+
+        // Grand summary
+        html += `
+          <div class="perf-section">
+            <div class="perf-section-label">
+              <span>All Users — Combined</span>
+              <span style="color:var(--p-text2);font-size:9px;">${state.users.length} users</span>
+            </div>
+            <div class="perf-summary-grid">
+              <div class="perf-stat">
+                <span class="perf-stat-label">Total Value</span>
+                <span class="perf-stat-val">${fmtMoney(grandValue)}</span>
+                <span class="perf-stat-sub">Started ${fmtMoney(grandStarting)}</span>
+              </div>
+              <div class="perf-stat">
+                <span class="perf-stat-label">Total Return</span>
+                <span class="perf-stat-val ${grandPnlCls}">${fmtMoney(grandReturn, true)}</span>
+                <span class="perf-stat-sub ${grandPnlCls}">${fmtPct(grandReturnPct)}</span>
+              </div>
+              <div class="perf-stat">
+                <span class="perf-stat-label">Positions</span>
+                <span class="perf-stat-val">${grandPositions}</span>
+                <span class="perf-stat-sub">across all portfolios</span>
+              </div>
+              <div class="perf-stat">
+                <span class="perf-stat-label">Trades</span>
+                <span class="perf-stat-val">${grandTrades}</span>
+                <span class="perf-stat-sub">executed</span>
+              </div>
+            </div>
+            <div class="perf-pnl-bar-wrap" style="margin-top:10px;">
+              <div class="perf-pnl-bar-label">
+                <span>Combined Return</span>
+                <span class="${grandPnlCls}">${fmtPct(grandReturnPct)}</span>
+              </div>
+              <div class="perf-pnl-bar-track">
+                <div class="perf-pnl-bar-fill ${grandPnlCls}" style="width:${grandBarPct}%"></div>
+              </div>
+            </div>
+          </div>
+        `;
+
+        // Per-user sections
+        for (const { user, portfolioStats, userValue, userStarting, userReturn, userReturnPct } of userSections) {
+          const uPnlCls  = userReturn >= 0 ? "pos" : "neg";
+          const uBarPct  = Math.min(Math.abs(userReturnPct) * 100 * 5, 100);
+          const uid      = `user-${user.id}`;
+
+          html += `
+            <div class="perf-section">
+              <div class="perf-section-label" style="cursor:pointer;" id="toggle-${uid}">
+                <span>👤 ${user.name}</span>
+                <span class="${uPnlCls}" style="font-size:10px;">${fmtMoney(userReturn, true)} · ${fmtPct(userReturnPct)}</span>
+              </div>
+
+              <div id="body-${uid}">
+                <!-- User summary bar -->
+                <div class="perf-pnl-bar-wrap" style="margin-bottom:12px;">
+                  <div class="perf-pnl-bar-label">
+                    <span>Total Value ${fmtMoney(userValue)}</span>
+                    <span class="${uPnlCls}">${fmtPct(userReturnPct)}</span>
+                  </div>
+                  <div class="perf-pnl-bar-track">
+                    <div class="perf-pnl-bar-fill ${uPnlCls}" style="width:${uBarPct}%"></div>
+                  </div>
+                </div>
+
+                <!-- Portfolio tabs -->
+                <div class="perf-port-tabs">
+                  ${portfolioStats.map((ps, i) => `
+                    <div class="perf-port-tab ${i === 0 ? "active" : ""}"
+                         data-pid="${ps.portfolio.id}"
+                         data-uid="${uid}">
+                      ${ps.portfolio.name}
+                    </div>
+                  `).join("")}
+                </div>
+
+                ${portfolioStats.map((ps, i) => buildPortfolioDetail(ps, i === 0)).join("")}
+              </div>
+            </div>
+          `;
+        }
+
+        main.innerHTML = html;
+
+        // Wire portfolio tab clicks per user
+        main.querySelectorAll(".perf-port-tab").forEach(tab => {
+          tab.addEventListener("click", () => {
+            const pid  = Number(tab.getAttribute("data-pid"));
+            const uid  = tab.getAttribute("data-uid");
+            const body = uid ? document.getElementById(`body-${uid}`) : main;
+
+            body.querySelectorAll(".perf-port-tab").forEach(t => t.classList.remove("active"));
+            tab.classList.add("active");
+
+            body.querySelectorAll(".perf-port-detail").forEach(d => {
+              d.style.display = Number(d.getAttribute("data-pid")) === pid ? "block" : "none";
+            });
+          });
+        });
+
+        // Wire user section collapse toggles
+        for (const { user } of userSections) {
+          const uid    = `user-${user.id}`;
+          const toggle = document.getElementById(`toggle-${uid}`);
+          const body   = document.getElementById(`body-${uid}`);
+          if (toggle && body) {
+            toggle.addEventListener("click", () => {
+              body.style.display = body.style.display === "none" ? "block" : "none";
+            });
+          }
+        }
+      }
+
+      /* ── BOOT ── */
+      async function boot() {
+        try { await renderAllUsers(); }
+        catch (err) { showEmpty(`Error loading performance data: ${err.message}`); }
+      }
+
+      boot();
+    </script>
   </body>
 </html>
