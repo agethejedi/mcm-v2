@@ -1101,7 +1101,7 @@ function mobRenderTable(symbols, snap) {
     });
   }
 
-  master.style.gridTemplateColumns = `28px repeat(${colCount}, minmax(0, 1fr))`;
+  master.style.gridTemplateColumns = `52px repeat(${colCount}, minmax(0, 1fr))`;
   master.style.maxWidth = "100%";
   master.innerHTML = html;
 
@@ -1478,6 +1478,80 @@ function updateSpectrumBar(evt, snap, symbols) {
     };
     sub.textContent = labels[evt?.code] || "Current phase";
   }
+
+  // Focus signal — highlight the cohort to watch right now
+  updateCohortFocus(evt);
+}
+
+function updateCohortFocus(evt) {
+  // Map event code to the cohort that should be in focus
+  // Based on MCM recovery sequence theory:
+  // panic    → watch Defensive (safe haven leadership)
+  // policy   → watch Liquidity (first movers on relief)
+  // macro    → watch Macro-Sensitive (financials, housing)
+  // earnings → watch Reflexive (growth names, high beta)
+  // recovery → watch Cyclical (full risk-on confirmation)
+  const focusMap = {
+    panic:    { cohort: "defensive", cls: "mob-row-focus-def", label: "SAFE HAVEN" },
+    policy:   { cohort: "liquidity_leader", cls: "mob-row-focus-liq", label: "WATCH" },
+    macro:    { cohort: "macro_sensitive",  cls: "mob-row-focus-mac", label: "WATCH" },
+    earnings: { cohort: "reflex_bounce",    cls: "mob-row-focus-ref", label: "WATCH" },
+    recovery: { cohort: "cyclical",         cls: "mob-row-focus-cyc", label: "WATCH" },
+  };
+
+  const focus = focusMap[evt?.code] || null;
+
+  // Clear all existing focus classes
+  const allFocusClasses = [
+    "mob-row-focus",
+    "mob-row-focus-liq",
+    "mob-row-focus-ref",
+    "mob-row-focus-mac",
+    "mob-row-focus-cyc",
+    "mob-row-focus-def",
+  ];
+
+  document.querySelectorAll(".mob-row-label").forEach((el) => {
+    allFocusClasses.forEach((cls) => el.classList.remove(cls));
+    // Remove any focus badge
+    el.querySelector(".mob-row-focus-badge")?.remove();
+  });
+
+  if (!focus) return;
+
+  // Find row labels matching the focus cohort and apply focus
+  // Row labels are adjacent to their cohort tiles — find by position in grid
+  const master = $("#mobPtMaster");
+  if (!master) return;
+
+  // Get all row labels and find which ones correspond to the focus cohort
+  // We identify by checking the next sibling tile's data-symbol cohort
+  const rowLabels = master.querySelectorAll(".mob-row-label");
+  rowLabels.forEach((label) => {
+    // Find the first tile sibling after this row label
+    let sibling = label.nextElementSibling;
+    while (sibling && sibling.classList.contains("mob-el-empty")) {
+      sibling = sibling.nextElementSibling;
+    }
+    if (!sibling) return;
+
+    const sym = sibling.getAttribute("data-symbol");
+    if (!sym) return;
+
+    const symbolsBySym = window.__mobSymbolsBySym || {};
+    const s = symbolsBySym[sym];
+    if (!s) return;
+
+    if (s.cohort === focus.cohort) {
+      label.classList.add("mob-row-focus", focus.cls);
+
+      // Add WATCH badge
+      const badge = document.createElement("div");
+      badge.className = "mob-row-focus-badge";
+      badge.textContent = focus.label;
+      label.appendChild(badge);
+    }
+  });
 }
 
 function refreshMobileView(symbols, snap, evt) {
