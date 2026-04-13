@@ -1443,7 +1443,7 @@ function updateSpectrumBar(evt, snap, symbols) {
   else if (breadthPct <= 0.35 && leadersUp <= 1) direction = "risk-off";
 
   // Build animated arrows
-  const arrowCount = 3;
+  const arrowCount = 5;
   let arrowHtml = "";
   let momentumText = "";
 
