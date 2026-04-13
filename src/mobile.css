@@ -333,10 +333,48 @@
   letter-spacing: .04em;
   color: var(--mob-text3);
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
 }
 
-.mob-seq-label.mob-seq-done   { color: var(--mob-green); }
-.mob-seq-label.mob-seq-active { color: var(--mob-yellow); }
+.mob-seq-label-name {
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: .06em;
+}
+
+.mob-seq-label-pct {
+  font-size: 8px;
+  font-weight: 700;
+  opacity: .85;
+}
+
+.mob-seq-label.mob-seq-done {
+  color: var(--mob-green);
+}
+
+.mob-seq-label.mob-seq-done .mob-seq-label-pct {
+  color: var(--mob-green);
+}
+
+.mob-seq-label.mob-seq-active {
+  color: var(--mob-yellow);
+}
+
+.mob-seq-label.mob-seq-active .mob-seq-label-name {
+  animation: mob-seq-label-pulse 1.5s ease-in-out infinite;
+}
+
+.mob-seq-label.mob-seq-active .mob-seq-label-pct {
+  color: var(--mob-yellow);
+}
+
+@keyframes mob-seq-label-pulse {
+  0%,100% { opacity: 1; }
+  50%      { opacity: .5; }
+}
 
 /* ── TICKER TAPE ── */
 .mob-ticker {
