@@ -1110,23 +1110,76 @@ function mobRenderTable(symbols, snap) {
   });
 }
 
-function mobRenderSequence(evt) {
+function mobRenderSequence(symbols, snap) {
   const bar = $("#mobSeqBar");
   const labels = $("#mobSeqLabels");
   if (!bar || !labels) return;
 
-  const stepMap = { panic: -1, recovery: 2, policy: 1, macro: 1, earnings: 0 };
-  const activeStep = stepMap[evt?.code] ?? 0;
+  // All 5 cohorts in recovery sequence order
+  const steps = [
+    { key: "liquidity_leader", label: "Liquidity", short: "LIQ" },
+    { key: "reflex_bounce",    label: "Reflexive", short: "REF" },
+    { key: "macro_sensitive",  label: "Macro",     short: "MAC" },
+    { key: "cyclical",         label: "Cyclical",  short: "CYC" },
+    { key: "defensive",        label: "Defensive", short: "DEF" },
+  ];
 
-  const steps = ["Liquidity", "Reflexive", "Macro", "Defensive"];
+  // Compute breadth for each cohort
+  const cohortBreadth = {};
+  for (const step of steps) {
+    const members = symbols.filter(s => s.cohort === step.key);
+    let up = 0, total = 0;
+    for (const s of members) {
+      const d = snap?.[s.symbol];
+      if (!d) continue;
+      const last = Number(d.last);
+      const prev = Number(d?.previous_close) || Number(d?.meta?.previous_close) || NaN;
+      if (!Number.isFinite(last) || !Number.isFinite(prev) || prev === 0) continue;
+      total++;
+      if (last >= prev) up++;
+    }
+    cohortBreadth[step.key] = total > 0 ? up / total : 0;
+  }
+
+  // Determine state of each step:
+  // done   = >50% of cohort members are up
+  // active = first cohort that hasn't reached 50% (or highest confirmed)
+  // wait   = everything after active
+  let foundActive = false;
+  const states = steps.map((step) => {
+    const breadth = cohortBreadth[step.key];
+    if (breadth >= 0.5) return "done";
+    if (!foundActive) {
+      foundActive = true;
+      return "active";
+    }
+    return "wait";
+  });
+
+  // If all cohorts are done (broad risk-on), keep last as active
+  if (!foundActive) states[states.length - 1] = "active";
+
+  // Store active cohort key for focus signal
+  const activeIdx = states.indexOf("active");
+  window.__mobActiveSequenceStep = activeIdx >= 0 ? steps[activeIdx].key : null;
+
+  // Build bar HTML
   let barHtml = "";
   let labelHtml = "";
 
-  steps.forEach((label, i) => {
-    const state = i < activeStep ? "done" : i === activeStep ? "active" : "wait";
+  steps.forEach((step, i) => {
+    const state = states[i];
+    const breadthPct = Math.round(cohortBreadth[step.key] * 100);
+
     barHtml += `<div class="mob-seq-step"><div class="mob-seq-fill mob-seq-${state}"></div></div>`;
-    if (i < steps.length - 1) barHtml += `<div class="mob-seq-arrow mob-seq-${state}"></div>`;
-    labelHtml += `<div class="mob-seq-label mob-seq-${state}">${label}</div>`;
+    if (i < steps.length - 1) {
+      barHtml += `<div class="mob-seq-arrow mob-seq-${state}"></div>`;
+    }
+    labelHtml += `
+      <div class="mob-seq-label mob-seq-${state}">
+        <div class="mob-seq-label-name">${step.short}</div>
+        <div class="mob-seq-label-pct">${breadthPct}%</div>
+      </div>`;
   });
 
   bar.innerHTML = barHtml;
@@ -1554,9 +1607,10 @@ function updateCohortFocus(evt) {
 function refreshMobileView(symbols, snap, evt) {
   window.__mobSnap = snap;
   mobRenderTable(symbols, snap);
-  mobRenderSequence(evt);
+  mobRenderSequence(symbols, snap);   // sets window.__mobActiveSequenceStep
   mobRenderTicker(symbols, snap);
   mobRenderEventCard(evt, snap, symbols);
+  updateSpectrumBar(evt, snap, symbols); // uses __mobActiveSequenceStep for focus
 }
 
 /* ============================================================
