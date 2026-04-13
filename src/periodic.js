@@ -1,1710 +1,1291 @@
-// src/periodic.js
-import "./mobile.css";
-import { getSnapshot, getActiveEvent, getDividends, getEarnings, getFundamentals } from "./api.js";
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>MCM | Portfolio Simulator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/src/styles.css" />
+    <link rel="stylesheet" href="/src/mobile.css" />
+    <style>
+      /* =========================================================
+         PORTFOLIO PAGE — MCM MOBILE-FIRST DESIGN
+         Consistent with the periodic table aesthetic
+         ========================================================= */
 
-const $ = (sel) => document.querySelector(sel);
-const DJIA_CANDIDATES = [".DJI", "^DJI", "DJI"];
+      * { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* ============================================================
-   BASIC HELPERS
-   ============================================================ */
-
-function fmtMoney(n) {
-  const x = Number(n);
-  if (!Number.isFinite(x)) return "—";
-  return x.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function fmtPct(n) {
-  const x = Number(n);
-  if (!Number.isFinite(x)) return "—";
-  return (x * 100).toFixed(2) + "%";
-}
-
-function safeText(s) {
-  return s === null || s === undefined ? "" : String(s);
-}
-
-function escapeHtml(str) {
-  return String(str)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
-
-function isMobile() {
-  return true; // Mobile periodic table layout is now the default on all viewports
-}
-
-function getNum(v) {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : null;
-}
-
-function getPrevClose(d, snap) {
-  return (
-    getNum(d?.previous_close) ??
-    getNum(d?.meta?.previous_close) ??
-    getNum(snap?._meta?.previous_close) ??
-    null
-  );
-}
-
-/* ============================================================
-   TOOLBAR / HEADER HELPERS
-   ============================================================ */
-
-function setAsOfLabels(snap) {
-  const asof = snap?._meta?.asof_local || snap?._meta?.asof_market || "—";
-  const asofMain = $("#asof");
-  const asofToolbar = $("#asofToolbar");
-  if (asofMain) asofMain.textContent = asof;
-  if (asofToolbar) asofToolbar.textContent = asof;
-}
-
-/* ============================================================
-   DJIA QUOTE STRIP
-   ============================================================ */
-
-function setDjiaQuoteFromData(d) {
-  const lastEl = $("#djiaLast");
-  const chgEl = $("#djiaChange");
-  const pctEl = $("#djiaPct");
-
-  if (!lastEl || !chgEl || !pctEl) return;
-
-  if (!d) {
-    lastEl.textContent = "—";
-    chgEl.textContent = "—";
-    pctEl.textContent = "—";
-    chgEl.classList.remove("pos", "neg");
-    pctEl.classList.remove("pos", "neg");
-    return;
-  }
-
-  const last = Number(d?.last);
-  const prev = Number(d?.previous_close) || Number(d?.meta?.previous_close) || NaN;
-
-  if (!Number.isFinite(last) || !Number.isFinite(prev) || prev === 0) {
-    lastEl.textContent = "—";
-    chgEl.textContent = "—";
-    pctEl.textContent = "—";
-    chgEl.classList.remove("pos", "neg");
-    pctEl.classList.remove("pos", "neg");
-    return;
-  }
-
-  const chg = last - prev;
-  const pct = chg / prev;
-  const sign = chg >= 0 ? "+" : "";
-
-  lastEl.textContent = fmtMoney(last);
-  chgEl.textContent = `${sign}${fmtMoney(chg)}`;
-  pctEl.textContent = `${sign}${fmtPct(pct)}`;
-
-  chgEl.classList.remove("pos", "neg");
-  pctEl.classList.remove("pos", "neg");
-
-  if (chg > 0) {
-    chgEl.classList.add("pos");
-    pctEl.classList.add("pos");
-  } else if (chg < 0) {
-    chgEl.classList.add("neg");
-    pctEl.classList.add("neg");
-  }
-}
-
-async function refreshDjiaQuote() {
-  for (const sym of DJIA_CANDIDATES) {
-    try {
-      const snap = await getSnapshot([sym]);
-      const d = snap?.[sym];
-      const last = Number(d?.last);
-      if (d && Number.isFinite(last) && last > 1000) {
-        setDjiaQuoteFromData(d);
-        return;
+      :root {
+        --p-bg:      #070d16;
+        --p-bg2:     #0b1520;
+        --p-bg3:     #0f1d2e;
+        --p-border:  #162438;
+        --p-border2: #1e3450;
+        --p-text:    #ddeeff;
+        --p-text2:   #6a90b0;
+        --p-text3:   #2e4a64;
+        --p-green:   #22c55e;
+        --p-red:     #ef4444;
+        --p-yellow:  #eab308;
+        --p-blue:    #3b82f6;
+        --p-cyan:    #22d3ee;
+        --p-mono:    'Share Tech Mono', ui-monospace, monospace;
       }
-    } catch {
-      // try next candidate
-    }
-  }
-  setDjiaQuoteFromData(null);
-}
 
-/* ============================================================
-   MARKET NEWS RAIL
-   ============================================================ */
-
-function renderNewsRail(items) {
-  const track = $("#newsRailTrack");
-  if (!track) return;
-
-  if (!Array.isArray(items) || !items.length) {
-    track.innerHTML = `<a class="newsItem muted" href="#" onclick="return false;">No market headlines available.</a>`;
-    return;
-  }
-
-  const markup = items.map((item) => {
-    const headline = escapeHtml(item.headline || "");
-    const url = escapeHtml(item.url || "#");
-    const source = escapeHtml(item.source || "");
-    return `
-      <a class="newsItem" href="${url}" target="_blank" rel="noreferrer">
-        <span>${headline}</span>
-        ${source ? `<span class="newsSource">${source}</span>` : ""}
-      </a>
-    `;
-  }).join("");
-
-  track.innerHTML = markup + markup;
-}
-
-async function refreshMarketNews() {
-  try {
-    const resp = await fetch("/api/market-news");
-    if (!resp.ok) throw new Error(`News request failed: ${resp.status}`);
-    const data = await resp.json();
-    renderNewsRail(data?.items || []);
-  } catch (err) {
-    console.error("market news error", err);
-    renderNewsRail([]);
-  }
-}
-
-/* ============================================================
-   COHORTS / TILE RENDER
-   ============================================================ */
-
-function cohortLabel(key) {
-  const map = {
-    liquidity_leader: "Liquidity Leaders",
-    reflex_bounce: "Reflex / Growth",
-    macro_sensitive: "Macro-Sensitive",
-    cyclicals_industrials: "Cyclicals / Industrials",
-    defensive_yield: "Defensive / Yield",
-    ai_exposure: "AI Exposure",
-    cyclical: "Cyclicals / Industrials",
-    defensive: "Defensive / Yield",
-  };
-  return map[key] || key || "Cohort";
-}
-
-function groupByCohort(list) {
-  const out = {};
-  for (const s of list) {
-    const k = s.cohort || s.cohort_key || s.group || "other";
-    if (!out[k]) out[k] = [];
-    out[k].push(s);
-  }
-  return out;
-}
-
-function tileTemplate(s) {
-  return `
-    <button class="pTile flat" data-symbol="${s.symbol}" aria-label="${s.symbol} tile">
-      <div class="tileTop">
-        <div class="tileLeft">
-          <div class="pSym">${s.symbol}</div>
-          <div class="pName">${safeText(s.name || s.company || "")}</div>
-        </div>
-        <div class="tileRight">
-          <div class="pPrice" id="pPrice-${s.symbol}">$—</div>
-        </div>
-      </div>
-      <div class="tileBottom">
-        <div class="tileChangeBlock">
-          <div class="tileDollar" id="pChgDollar-${s.symbol}">—</div>
-          <div class="tilePct" id="pChgPct-${s.symbol}">—</div>
-        </div>
-        <span class="statusChip forming" id="pStatus-${s.symbol}">Setup</span>
-      </div>
-    </button>
-  `;
-}
-
-function renderCohorts(container, symbols) {
-  if (!container) return;
-
-  const grouped = groupByCohort(symbols);
-
-  const order = [
-    "liquidity_leader",
-    "reflex_bounce",
-    "macro_sensitive",
-    "cyclicals_industrials",
-    "cyclical",
-    "defensive_yield",
-    "defensive",
-    "ai_exposure",
-    "other",
-  ];
-
-  const cols = [];
-  for (const key of order) {
-    if (!grouped[key]?.length) continue;
-    const list = grouped[key].slice().sort((a, b) => (a.symbol || "").localeCompare(b.symbol || ""));
-    cols.push(`
-      <section class="pCol">
-        <div class="pColHead">
-          <div class="pColTitle">${cohortLabel(key)}</div>
-          <div class="pColCount">${list.length} names</div>
-        </div>
-        <div class="pColBody">
-          ${list.map(tileTemplate).join("")}
-        </div>
-      </section>
-    `);
-  }
-
-  container.innerHTML = cols.join("");
-}
-
-/* ============================================================
-   EVENT BANNER
-   ============================================================ */
-
-function setRegimeBanner({ title, sub, meta, toneClass }) {
-  const t = $("#homeRegimeTitle");
-  const s = $("#homeRegimeSub");
-  const m = $("#homeRegimeMeta");
-  const box = $("#homeRegime");
-
-  if (t) t.textContent = title || "MARKET REGIME: —";
-  if (s) s.textContent = sub || "—";
-  if (m) m.textContent = meta || "—";
-
-  if (box) {
-    box.classList.remove("evt-red", "evt-orange", "evt-blue", "evt-yellow", "evt-green", "evt-neutral");
-    box.classList.add(toneClass || "evt-neutral");
-  }
-}
-
-function isGreen(d, snap) {
-  const last = getNum(d?.last);
-  const prev = getPrevClose(d, snap);
-  if (last === null || prev === null || prev === 0) return null;
-  if (last === prev) return "flat";
-  return last > prev;
-}
-
-function computeBreadth(symbols, snap) {
-  let up = 0, down = 0, flat = 0, used = 0;
-
-  for (const s of symbols) {
-    const d = snap?.[s.symbol];
-    if (!d) continue;
-    const g = isGreen(d, snap);
-    if (g === null) continue;
-    used++;
-    if (g === "flat") flat++;
-    else if (g) up++;
-    else down++;
-  }
-
-  const breadthUp = used ? up / used : 0;
-  return { up, down, flat, used, breadthUp };
-}
-
-function countGreen(list, snap) {
-  let up = 0, down = 0, flat = 0, used = 0;
-  for (const sym of list) {
-    const d = snap?.[sym];
-    if (!d) continue;
-    const g = isGreen(d, snap);
-    if (g === null) continue;
-    used++;
-    if (g === "flat") flat++;
-    else if (g) up++;
-    else down++;
-  }
-  return { up, down, flat, used };
-}
-
-function detectEvent(symbols, snap) {
-  const LEADERS = ["MSFT", "AAPL", "NVDA", "V"];
-  const DEFENSIVES = ["PG", "KO", "JNJ", "MRK", "MCD", "VZ", "TRV", "CSCO", "WMT", "UNH", "AMGN"];
-  const CYCLICALS = ["CAT", "HD", "BA", "MMM", "HON", "DIS", "CVX", "SHW", "AMZN"];
-  const FINANCIALS = ["JPM", "GS", "AXP", "V"];
-
-  const b = computeBreadth(symbols, snap);
-  const leaders = countGreen(LEADERS, snap);
-  const def = countGreen(DEFENSIVES, snap);
-  const cyc = countGreen(CYCLICALS, snap);
-  const fin = countGreen(FINANCIALS, snap);
-
-  if (b.used >= 10 && b.breadthUp <= 0.25 && leaders.down >= 1 && def.up <= 2) {
-    return {
-      code: "panic",
-      badge: "🟥",
-      label: "Panic / Liquidation",
-      toneClass: "evt-red",
-      sub: "Broad selling pressure; little hiding place. Wait for exhaustion + first confirms.",
-      meta: `Breadth: ${b.up}/${b.used} up • Leaders up ${leaders.up}/${leaders.used || 0} • Defensives up ${def.up}/${def.used || 0}`
-    };
-  }
-
-  if (def.up >= 3 && (cyc.down >= 3 || fin.down >= 2)) {
-    return {
-      code: "policy",
-      badge: "🟦",
-      label: "Risk-Off Rotation (Policy / Geo)",
-      toneClass: "evt-blue",
-      sub: "Rotation into safety. Rebound candidates tend to be liquidity leaders + quality defensives first.",
-      meta: `Defensives up ${def.up}/${def.used || 0} • Cyclicals down ${cyc.down}/${cyc.used || 0} • Financials down ${fin.down}/${fin.used || 0}`
-    };
-  }
-
-  if ((cyc.down >= 3 && fin.down >= 2) && (leaders.used ? leaders.up <= 1 : true)) {
-    return {
-      code: "macro",
-      badge: "🟧",
-      label: "Macro Repricing",
-      toneClass: "evt-orange",
-      sub: "Economic expectations shifting (rates/growth). Watch if leaders can stabilize; otherwise trend risk.",
-      meta: `Cyclicals down ${cyc.down}/${cyc.used || 0} • Financials down ${fin.down}/${fin.used || 0} • Leaders up ${leaders.up}/${leaders.used || 0}`
-    };
-  }
-
-  if (b.used >= 10 && b.breadthUp >= 0.60 && leaders.up >= 1) {
-    return {
-      code: "recovery",
-      badge: "🟩",
-      label: "Recovery / Mean Reversion",
-      toneClass: "evt-green",
-      sub: "Buyers returning. In rebounds, leaders often confirm first, then cyclicals.",
-      meta: `Breadth: ${b.up}/${b.used} up (${Math.round(b.breadthUp * 100)}%) • Leaders up ${leaders.up}/${leaders.used || 0}`
-    };
-  }
-
-  return {
-    code: "earnings",
-    badge: "🟨",
-    label: "Normal / Earnings-Driven",
-    toneClass: "evt-yellow",
-    sub: "No clear systemic pattern. Moves likely company-specific (earnings/news).",
-    meta: `Breadth: ${b.up}/${b.used} up (${Math.round(b.breadthUp * 100)}%)`
-  };
-}
-
-/* ============================================================
-   LINK HELPERS
-   ============================================================ */
-
-function buildDefaultLinks(symbol) {
-  const sym = encodeURIComponent(symbol);
-  const q = encodeURIComponent(`${symbol} investor relations`);
-  return [
-    { label: "Investor Relations (search)", href: `https://www.google.com/search?q=${q}` },
-    { label: "SEC filings (EDGAR)", href: `https://www.sec.gov/edgar/search/#/q=${sym}` },
-    { label: "Yahoo Finance", href: `https://finance.yahoo.com/quote/${sym}` },
-  ];
-}
-
-function renderLinks(el, links) {
-  if (!el) return;
-  el.innerHTML = "";
-  for (const l of links) {
-    const a = document.createElement("a");
-    a.className = "linkItem";
-    a.href = l.href;
-    a.target = "_blank";
-    a.rel = "noreferrer";
-    a.textContent = l.label;
-    el.appendChild(a);
-  }
-}
-
-/* ============================================================
-   OFF-CANVAS PANEL
-   ============================================================ */
-
-function ensurePanelOverlay() {
-  let overlay = $("#panelOverlay");
-  if (!overlay) {
-    overlay = document.createElement("div");
-    overlay.id = "panelOverlay";
-    overlay.className = "panelOverlay hidden";
-    document.body.appendChild(overlay);
-  }
-  return overlay;
-}
-
-function openDesktopPanel() {
-  const panel = $("#sidePanel");
-  if (!panel) return;
-  panel.classList.add("open");
-  const overlay = ensurePanelOverlay();
-  overlay.classList.remove("hidden");
-  overlay.classList.add("show");
-}
-
-function closeDesktopPanel() {
-  const panel = $("#sidePanel");
-  if (panel) panel.classList.remove("open");
-  const overlay = $("#panelOverlay");
-  if (overlay) {
-    overlay.classList.remove("show");
-    overlay.classList.add("hidden");
-  }
-}
-
-function showSideCard() {
-  $("#sideEmpty")?.classList.add("hidden");
-  $("#sideCard")?.classList.remove("hidden");
-  if (!isMobile()) openDesktopPanel();
-}
-
-function hideSideCard() {
-  $("#sideCard")?.classList.add("hidden");
-  $("#sideEmpty")?.classList.remove("hidden");
-  if (!isMobile()) closeDesktopPanel();
-}
-
-/* ============================================================
-   MOBILE SHEET
-   ============================================================ */
-
-function openSheet(html) {
-  const body = $("#sheetBody");
-  const overlay = $("#sheetOverlay");
-  const sheet = $("#sheet");
-  if (!body || !overlay || !sheet) return;
-  body.innerHTML = html;
-  overlay.classList.remove("hidden");
-  sheet.classList.remove("hidden");
-}
-
-function closeSheet() {
-  $("#sheetOverlay")?.classList.add("hidden");
-  $("#sheet")?.classList.add("hidden");
-}
-
-function cardHtmlFromDom() {
-  const sym = safeText($("#cardSym")?.textContent);
-  const name = safeText($("#cardName")?.textContent);
-  const cat = safeText($("#cardCat")?.textContent);
-  const price = safeText($("#cardPrice")?.textContent);
-  const chg = safeText($("#cardChg")?.textContent);
-  const blurb = safeText($("#cardBlurb")?.textContent);
-  const pe = safeText($("#cardPE")?.textContent);
-  const yld = safeText($("#cardYield")?.textContent);
-  const ex = safeText($("#cardEx")?.textContent);
-  const pay = safeText($("#cardPay")?.textContent);
-
-  const links = Array.from($("#cardLinks")?.querySelectorAll("a") || []).map((a) => ({
-    label: a.textContent,
-    href: a.href,
-  }));
-
-  return `
-    <div class="sideCard">
-      <div class="sideHeader">
-        <div>
-          <div class="sideSym">${sym}</div>
-          <div class="sideName">${name}</div>
-          <div class="sideCat">${cat}</div>
-        </div>
-        <button class="xbtn" id="sheetClose" aria-label="Close">×</button>
-      </div>
-      <div class="sidePrice">
-        <div class="priceBig">${price}</div>
-        <div class="priceSub">${chg}</div>
-      </div>
-      <div class="sideSection">
-        <div class="sideSectionTitle">What the company does</div>
-        <div class="sideText">${blurb}</div>
-      </div>
-      <div class="sideSection">
-        <div class="sideSectionTitle">Quick stats</div>
-        <div class="kv">
-          <div>P/E:</div><div>${pe}</div>
-          <div>Yield:</div><div>${yld}</div>
-          <div>Ex-date:</div><div>${ex}</div>
-          <div>Pay date:</div><div>${pay}</div>
-        </div>
-      </div>
-      <div class="sideSection">
-        <div class="sideSectionTitle">Links</div>
-        <div class="linkList">
-          ${links.map((l) => `<a class="linkItem" href="${l.href}" target="_blank" rel="noreferrer">${l.label}</a>`).join("")}
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-async function populateCompanyCard(symbolsBySym, snap, sym) {
-  const s = symbolsBySym[sym];
-  if (!s) return;
-
-  const d = snap?.[sym] || {};
-  const last = Number(d.last);
-  const prev =
-    Number(d?.previous_close) ||
-    Number(d?.meta?.previous_close) ||
-    Number(snap?._meta?.previous_close) ||
-    NaN;
-
-  $("#cardSym").textContent = s.symbol;
-  $("#cardName").textContent = s.name || s.company || "—";
-  $("#cardCat").textContent = s.category || s.sector || "—";
-  $("#cardPrice").textContent = Number.isFinite(last) ? `$${fmtMoney(last)}` : "—";
-
-  let chgText = "—";
-  if (Number.isFinite(last) && Number.isFinite(prev) && prev !== 0) {
-    const chg = last - prev;
-    const pct = chg / prev;
-    const sign = chg >= 0 ? "+" : "";
-    chgText = `${sign}$${fmtMoney(chg)} (${sign}${fmtPct(pct)}) vs prev close`;
-  }
-  $("#cardChg").textContent = chgText;
-  $("#cardBlurb").textContent = s.blurb || s.description || "—";
-
-  const links = Array.isArray(s.links) && s.links.length
-    ? s.links
-    : buildDefaultLinks(s.symbol);
-
-  renderLinks($("#cardLinks"), links);
-
-  $("#cardPE").textContent = "—";
-  $("#cardYield").textContent = "—";
-  $("#cardEx").textContent = "—";
-  $("#cardPay").textContent = "—";
-
-  try {
-    const div = await getDividends(sym);
-    if (div?.dividends?.length) {
-      const latest = div.dividends[0];
-      const amt = Number(latest.amount);
-      const ex = latest.ex_date || latest.exDate || null;
-      const pay = latest.pay_date || latest.payDate || null;
-
-      $("#cardEx").textContent = ex || "—";
-      $("#cardPay").textContent = pay || "—";
-
-      if (Number.isFinite(last) && Number.isFinite(amt) && last > 0) {
-        const annual = amt * 4;
-        $("#cardYield").textContent = fmtPct(annual / last);
-      } else if (Number.isFinite(amt)) {
-        $("#cardYield").textContent = `$${fmtMoney(amt)} (per period)`;
+      body {
+        background: var(--p-bg);
+        color: var(--p-text);
+        font-family: 'Rajdhani', sans-serif;
+        min-height: 100vh;
+        overflow-x: hidden;
       }
-    }
-  } catch {}
 
-  try {
-    const ern = await getEarnings(sym);
-    const peFromApi = Number(ern?.pe ?? ern?.fundamentals?.pe);
-    if (Number.isFinite(peFromApi)) $("#cardPE").textContent = peFromApi.toFixed(2);
-  } catch {}
+      body::before {
+        content: '';
+        position: fixed; inset: 0;
+        background:
+          radial-gradient(ellipse 70% 40% at 50% 0%, rgba(34,197,94,.04) 0%, transparent 60%),
+          radial-gradient(ellipse 50% 50% at 80% 100%, rgba(59,130,246,.04) 0%, transparent 60%);
+        pointer-events: none;
+        z-index: 0;
+      }
 
-  showSideCard();
+      /* ── LAYOUT ── */
+      .port-shell {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        position: relative;
+        z-index: 1;
+        padding-bottom: 80px;
+      }
 
-  if (isMobile()) {
-    openSheet(cardHtmlFromDom());
-    $("#sheetClose")?.addEventListener("click", closeSheet, { once: true });
-  }
-}
+      /* ── HEADER ── */
+      .port-header {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: rgba(7,13,22,.95);
+        backdrop-filter: blur(16px);
+        border-bottom: 1px solid var(--p-border);
+        padding: 14px 16px 12px;
+      }
 
-/* ============================================================
-   TILE REFRESH
-   ============================================================ */
+      .port-header-row1 {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 6px;
+      }
 
-async function refreshTiles(symbols, snap) {
-  for (const s of symbols) {
-    const d = snap?.[s.symbol] || {};
-    const last = Number(d.last);
-    const prev =
-      Number(d?.previous_close) ||
-      Number(d?.meta?.previous_close) ||
-      NaN;
+      .port-brand {
+        font-family: var(--p-mono);
+        font-size: 10px;
+        letter-spacing: .15em;
+        color: var(--p-text2);
+      }
 
-    const tileEl = document.querySelector(`.pTile[data-symbol="${s.symbol}"]`);
-    const priceEl = $(`#pPrice-${s.symbol}`);
-    const chgDollarEl = $(`#pChgDollar-${s.symbol}`);
-    const chgPctEl = $(`#pChgPct-${s.symbol}`);
-    const statusEl = $(`#pStatus-${s.symbol}`);
+      .port-header-title {
+        font-family: var(--p-mono);
+        font-size: 13px;
+        letter-spacing: .08em;
+        color: var(--p-text);
+        font-weight: 700;
+        line-height: 1.3;
+        margin-bottom: 8px;
+      }
 
-    if (priceEl) {
-      priceEl.textContent = Number.isFinite(last) ? `$${fmtMoney(last)}` : "$—";
-    }
+      .port-status-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
 
-    if (chgDollarEl && chgPctEl && tileEl) {
-      tileEl.classList.remove("pos", "neg", "flat");
+      .port-status-pill {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        background: rgba(34,197,94,.08);
+        border: 1px solid rgba(34,197,94,.2);
+        border-radius: 20px;
+        padding: 3px 10px;
+        font-family: var(--p-mono);
+        font-size: 9px;
+        letter-spacing: .1em;
+        color: var(--p-green);
+      }
 
-      if (Number.isFinite(last) && Number.isFinite(prev) && prev !== 0) {
-        const chg = last - prev;
-        const pct = chg / prev;
-        const sign = chg >= 0 ? "+" : "";
+      .port-status-dot {
+        width: 5px; height: 5px;
+        border-radius: 50%;
+        background: var(--p-green);
+        box-shadow: 0 0 6px var(--p-green);
+        animation: port-pulse 2s infinite;
+      }
 
-        chgDollarEl.textContent = `${sign}$${fmtMoney(chg)}`;
-        chgPctEl.textContent = `${sign}${fmtPct(pct)}`;
+      @keyframes port-pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
 
-        chgDollarEl.classList.remove("pos", "neg");
-        chgPctEl.classList.remove("pos", "neg");
+      /* ── TAB BAR ── */
+      .port-tab-bar {
+        position: fixed;
+        bottom: 0; left: 0; right: 0;
+        height: 72px;
+        background: rgba(7,13,22,.96);
+        backdrop-filter: blur(20px);
+        border-top: 1px solid var(--p-border);
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-around;
+        padding: 10px 0 0;
+        z-index: 200;
+      }
 
-        if (chg > 0) {
-          tileEl.classList.add("pos");
-          chgDollarEl.classList.add("pos");
-          chgPctEl.classList.add("pos");
-        } else if (chg < 0) {
-          tileEl.classList.add("neg");
-          chgDollarEl.classList.add("neg");
-          chgPctEl.classList.add("neg");
-        } else {
-          tileEl.classList.add("flat");
+      .port-tab {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        cursor: pointer;
+        padding: 4px 16px;
+        border: none;
+        background: transparent;
+        box-shadow: none;
+        border-radius: 10px;
+        color: var(--p-text3);
+        text-decoration: none;
+      }
+
+      .port-tab:active { transform: scale(.88); }
+      .port-tab-icon { font-size: 20px; line-height: 1; }
+      .port-tab-lbl {
+        font-family: var(--p-mono);
+        font-size: 8px;
+        letter-spacing: .08em;
+        color: var(--p-text3);
+      }
+      .port-tab.active .port-tab-lbl { color: var(--p-blue); }
+
+      /* ── MAIN CONTENT ── */
+      .port-main {
+        padding: 0 0 16px;
+      }
+
+      /* ── COMMAND BAR — user/portfolio selector ── */
+      .port-command-bar {
+        margin: 12px 14px;
+        background: var(--p-bg3);
+        border: 1px solid var(--p-border2);
+        border-radius: 14px;
+        padding: 14px;
+      }
+
+      .port-command-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+
+      .port-section-label {
+        font-family: var(--p-mono);
+        font-size: 9px;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+        color: var(--p-text3);
+      }
+
+      .port-command-meta {
+        font-family: var(--p-mono);
+        font-size: 9px;
+        color: var(--p-text2);
+      }
+
+      .port-selects {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+
+      .port-field {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .port-field-label {
+        font-family: var(--p-mono);
+        font-size: 8px;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+        color: var(--p-text3);
+      }
+
+      .port-select,
+      .port-input,
+      .port-textarea {
+        background: rgba(6,14,26,.8);
+        border: 1px solid var(--p-border2);
+        color: var(--p-text);
+        padding: 10px 12px;
+        border-radius: 10px;
+        font-family: var(--p-mono);
+        font-size: 12px;
+        width: 100%;
+        outline: none;
+        transition: border-color .15s;
+        -webkit-appearance: none;
+      }
+
+      .port-select:focus,
+      .port-input:focus,
+      .port-textarea:focus {
+        border-color: rgba(59,130,246,.5);
+        box-shadow: 0 0 0 1px rgba(59,130,246,.1);
+      }
+
+      .port-select option {
+        background: #0b1520;
+      }
+
+      .port-new-portfolio {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .port-new-portfolio .port-input {
+        flex: 1;
+      }
+
+      .port-btn {
+        background: rgba(59,130,246,.12);
+        border: 1px solid rgba(59,130,246,.3);
+        color: #93c5fd;
+        padding: 10px 14px;
+        border-radius: 10px;
+        font-family: var(--p-mono);
+        font-size: 10px;
+        letter-spacing: .06em;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all .15s;
+      }
+
+      .port-btn:hover {
+        border-color: rgba(59,130,246,.6);
+        background: rgba(59,130,246,.18);
+      }
+
+      .port-btn:active { transform: scale(.95); }
+
+      .port-btn-submit {
+        background: rgba(34,197,94,.12);
+        border-color: rgba(34,197,94,.35);
+        color: #86efac;
+        width: 100%;
+        padding: 14px;
+        font-size: 11px;
+        letter-spacing: .1em;
+        margin-top: 4px;
+      }
+
+      .port-btn-submit:hover {
+        background: rgba(34,197,94,.2);
+        border-color: rgba(34,197,94,.55);
+      }
+
+      /* ── SUMMARY CARDS ── */
+      .port-summary {
+        margin: 0 14px 12px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .port-stat-card {
+        background: var(--p-bg3);
+        border: 1px solid var(--p-border2);
+        border-radius: 12px;
+        padding: 12px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .port-stat-label {
+        font-family: var(--p-mono);
+        font-size: 8px;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+        color: var(--p-text3);
+      }
+
+      .port-stat-val {
+        font-family: var(--p-mono);
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--p-text);
+        line-height: 1;
+      }
+
+      .port-stat-val.pos { color: var(--p-green); }
+      .port-stat-val.neg { color: var(--p-red); }
+
+      /* ── ORDER ENTRY SECTION ── */
+      .port-section {
+        margin: 0 14px 12px;
+        background: var(--p-bg3);
+        border: 1px solid var(--p-border2);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+
+      .port-section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--p-border);
+        cursor: pointer;
+        user-select: none;
+      }
+
+      .port-section-head-left {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .port-section-title {
+        font-family: var(--p-mono);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+        color: var(--p-text);
+      }
+
+      .port-section-sub {
+        font-size: 11px;
+        color: var(--p-text2);
+      }
+
+      .port-section-toggle {
+        font-family: var(--p-mono);
+        font-size: 14px;
+        color: var(--p-text3);
+        transition: transform .2s;
+      }
+
+      .port-section.collapsed .port-section-toggle {
+        transform: rotate(-90deg);
+      }
+
+      .port-section-body {
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .port-section.collapsed .port-section-body {
+        display: none;
+      }
+
+      /* Two-col grid for small fields */
+      .port-two-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .port-three-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 8px;
+      }
+
+      /* Symbol resolver */
+      .port-symbol-resolved {
+        font-family: var(--p-mono);
+        font-size: 10px;
+        color: var(--p-cyan);
+        margin-top: 4px;
+        padding: 6px 10px;
+        background: rgba(34,211,238,.06);
+        border: 1px solid rgba(34,211,238,.15);
+        border-radius: 8px;
+        min-height: 32px;
+        display: flex;
+        align-items: center;
+      }
+
+      /* Side toggle — BUY / SELL as big buttons */
+      .port-side-toggle {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+      }
+
+      .port-side-btn {
+        padding: 12px;
+        border-radius: 10px;
+        font-family: var(--p-mono);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .12em;
+        cursor: pointer;
+        border: 2px solid transparent;
+        text-align: center;
+        transition: all .15s;
+        background: rgba(255,255,255,.03);
+        color: var(--p-text3);
+        border-color: var(--p-border2);
+      }
+
+      .port-side-btn.active-buy {
+        background: rgba(34,197,94,.12);
+        border-color: rgba(34,197,94,.5);
+        color: var(--p-green);
+        box-shadow: 0 0 12px rgba(34,197,94,.1);
+      }
+
+      .port-side-btn.active-sell {
+        background: rgba(239,68,68,.12);
+        border-color: rgba(239,68,68,.4);
+        color: var(--p-red);
+        box-shadow: 0 0 12px rgba(239,68,68,.1);
+      }
+
+      /* Event rationale chips */
+      .port-rationale-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .port-rationale-chip {
+        padding: 6px 10px;
+        border-radius: 20px;
+        border: 1px solid var(--p-border2);
+        background: rgba(255,255,255,.02);
+        font-family: var(--p-mono);
+        font-size: 9px;
+        letter-spacing: .06em;
+        color: var(--p-text2);
+        cursor: pointer;
+        transition: all .15s;
+        white-space: nowrap;
+      }
+
+      .port-rationale-chip:hover {
+        border-color: rgba(59,130,246,.4);
+        color: var(--p-text);
+      }
+
+      .port-rationale-chip.selected {
+        background: rgba(59,130,246,.12);
+        border-color: rgba(59,130,246,.45);
+        color: #93c5fd;
+      }
+
+      /* ── ORDER HISTORY ── */
+      .port-orders {
+        margin: 0 14px 12px;
+      }
+
+      .port-orders-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+      }
+
+      .port-order-card {
+        background: var(--p-bg3);
+        border: 1px solid var(--p-border2);
+        border-radius: 12px;
+        padding: 12px 14px;
+        margin-bottom: 8px;
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 8px 12px;
+        align-items: center;
+      }
+
+      .port-order-card.executed {
+        border-color: rgba(34,197,94,.2);
+      }
+
+      .port-order-card.open {
+        border-color: rgba(234,179,8,.2);
+      }
+
+      .port-order-sym {
+        font-family: var(--p-mono);
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--p-cyan);
+        line-height: 1;
+      }
+
+      .port-order-details {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+
+      .port-order-meta {
+        font-family: var(--p-mono);
+        font-size: 9px;
+        color: var(--p-text2);
+        letter-spacing: .04em;
+      }
+
+      .port-order-cohort {
+        font-family: var(--p-mono);
+        font-size: 9px;
+        color: var(--p-text3);
+      }
+
+      .port-order-right {
+        text-align: right;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        align-items: flex-end;
+      }
+
+      .port-order-price {
+        font-family: var(--p-mono);
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--p-text);
+      }
+
+      .port-order-status {
+        font-family: var(--p-mono);
+        font-size: 8px;
+        letter-spacing: .08em;
+        padding: 2px 7px;
+        border-radius: 4px;
+        text-transform: uppercase;
+      }
+
+      .port-order-status.executed {
+        background: rgba(34,197,94,.12);
+        color: var(--p-green);
+        border: 1px solid rgba(34,197,94,.25);
+      }
+
+      .port-order-status.open {
+        background: rgba(234,179,8,.1);
+        color: var(--p-yellow);
+        border: 1px solid rgba(234,179,8,.25);
+        animation: port-pulse 2s infinite;
+      }
+
+      .port-order-event {
+        font-family: var(--p-mono);
+        font-size: 8px;
+        color: var(--p-blue);
+        opacity: .8;
+      }
+
+      .port-empty {
+        font-family: var(--p-mono);
+        font-size: 11px;
+        color: var(--p-text3);
+        text-align: center;
+        padding: 24px;
+        letter-spacing: .06em;
+      }
+
+      /* Hidden select for order type (underlying) */
+      .port-hidden { display: none; }
+
+      /* ── TOAST NOTIFICATION ── */
+      .port-toast {
+        position: fixed;
+        bottom: 90px;
+        left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        background: var(--p-bg3);
+        border: 1px solid rgba(34,197,94,.35);
+        border-radius: 12px;
+        padding: 12px 20px;
+        font-family: var(--p-mono);
+        font-size: 11px;
+        color: var(--p-green);
+        letter-spacing: .06em;
+        z-index: 300;
+        opacity: 0;
+        transition: all .3s;
+        white-space: nowrap;
+        pointer-events: none;
+      }
+
+      .port-toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+
+      .port-toast.error {
+        border-color: rgba(239,68,68,.35);
+        color: var(--p-red);
+      }
+
+      /* ── DESKTOP ── */
+      @media (min-width: 768px) {
+        .port-main {
+          max-width: 800px;
+          margin: 0 auto;
+          padding: 0 0 24px;
         }
-      } else {
-        chgDollarEl.textContent = "—";
-        chgPctEl.textContent = "—";
-        chgDollarEl.classList.remove("pos", "neg");
-        chgPctEl.classList.remove("pos", "neg");
-        tileEl.classList.add("flat");
-      }
-    }
 
-    const rthConfirmed = !!(d?.rth?.reversal?.confirmed);
-    const ethConfirmed = !!(d?.eth?.reversal?.confirmed);
-    const confirmed = rthConfirmed || ethConfirmed;
+        .port-summary {
+          grid-template-columns: repeat(4, 1fr);
+        }
 
-    if (statusEl) {
-      statusEl.textContent = confirmed ? "Confirmed" : "Setup";
-      statusEl.classList.toggle("confirmed", confirmed);
-      statusEl.classList.toggle("forming", !confirmed);
-    }
-  }
-}
-
-/* ============================================================
-   WIRING
-   ============================================================ */
-
-function wireCardClose() {
-  $("#cardClose")?.addEventListener("click", () => {
-    hideSideCard();
-    closeSheet();
-  });
-
-  $("#sheetOverlay")?.addEventListener("click", closeSheet);
-
-  const overlay = ensurePanelOverlay();
-  overlay.addEventListener("click", () => {
-    hideSideCard();
-  });
-
-  window.addEventListener("keydown", (e) => {
-    if (e.key !== "Escape") return;
-    closeSheet();
-    hideSideCard();
-  });
-}
-
-/* ============================================================
-   MOBILE PERIODIC TABLE
-   ============================================================ */
-
-const COHORT_META = {
-  liquidity_leader:    { label: "Liquidity", shortLabel: "LIQ", cls: "mob-c1", color: "#60a5fa", seqStep: 0 },
-  reflex_bounce:       { label: "Reflexive", shortLabel: "REF", cls: "mob-c2", color: "#c084fc", seqStep: 1 },
-  macro_sensitive:     { label: "Macro",     shortLabel: "MAC", cls: "mob-c3", color: "#34d399", seqStep: 2 },
-  cyclical:            { label: "Cyclical",  shortLabel: "CYC", cls: "mob-c4", color: "#fb923c", seqStep: 3 },
-  defensive:           { label: "Defensive", shortLabel: "DEF", cls: "mob-c5", color: "#f87171", seqStep: 4 },
-};
-
-const COHORT_ORDER_MOB = [
-  "liquidity_leader",
-  "reflex_bounce",
-  "macro_sensitive",
-  "cyclical",
-  "defensive",
-];
-
-function toRoman(n) {
-  const vals = [8, 7, 6, 5, 4, 3, 2, 1];
-  const syms = ["VIII", "VII", "VI", "V", "IV", "III", "II", "I"];
-  for (let i = 0; i < vals.length; i++) {
-    if (n >= vals[i]) return syms[i];
-  }
-  return String(n);
-}
-
-function mobFmtPrice(n) {
-  const x = Number(n);
-  if (!Number.isFinite(x)) return "—";
-  return x.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function mobFmtChg(chg) {
-  if (!Number.isFinite(chg)) return "—";
-  return `${chg >= 0 ? "+" : ""}${mobFmtPrice(chg)}`;
-}
-
-function mobFmtPct(pct) {
-  if (!Number.isFinite(pct)) return "";
-  return `${pct >= 0 ? "+" : ""}${(pct * 100).toFixed(2)}%`;
-}
-
-function getTileSignal(d) {
-  if (!d) return "neutral";
-  if (d?.rth?.reversal?.confirmed || d?.eth?.reversal?.confirmed) return "confirmed";
-  const last = Number(d?.last);
-  const prev = Number(d?.previous_close) || Number(d?.meta?.previous_close) || NaN;
-  if (Number.isFinite(last) && Number.isFinite(prev) && prev !== 0) {
-    return last < prev ? "down" : "forming";
-  }
-  return "neutral";
-}
-
-function injectMobileShell(symbols) {
-  if ($("#mobView")) return;
-
-  const legendHtml = COHORT_ORDER_MOB.map((k) => {
-    const m = COHORT_META[k];
-    return `<div class="mob-legend-item">
-      <div class="mob-legend-swatch" style="background:${m.color}"></div>
-      <span style="color:${m.color};font-size:8px;">${m.label}</span>
-    </div>`;
-  }).join("");
-
-  const shell = document.createElement("div");
-  shell.id = "mobView";
-  shell.className = "mob-view";
-  shell.innerHTML = `
-    <div class="mob-screen active" id="mobScreenTable">
-      <div class="mob-table-header">
-        <div class="mob-header-row1">
-          <span class="mob-brand">RISKXLABS / MCM</span>
-          <div class="mob-regime-pill" id="mobRegimePill">
-            <div class="mob-regime-dot"></div>
-            <span id="mobRegimePillText">—</span>
-          </div>
-        </div>
-        <div class="mob-main-title">PERIODIC TABLE<br>OF THE DOW</div>
-        <div class="mob-legend">${legendHtml}</div>
-      </div>
-
-      <div class="mob-pt-container">
-        <div class="mob-pt-master" id="mobPtMaster"></div>
-      </div>
-
-      <div class="mob-sequence-bar" id="mobSeqBar"></div>
-      <div class="mob-seq-labels" id="mobSeqLabels"></div>
-
-      <div class="mob-ticker">
-        <div class="mob-ticker-inner" id="mobTickerInner"></div>
-      </div>
-
-      <div class="mob-regime-section">
-        <div class="mob-event-card" id="mobEventCard">
-          <div class="mob-event-card-top">
-            <div class="mob-event-type-pill">
-              <div class="mob-event-live-dot"></div>
-              <span id="mobEventLabel">—</span>
-            </div>
-            <span class="mob-event-timestamp" id="mobEventAsof">—</span>
-          </div>
-          <div class="mob-breadth-readout">
-            <div class="mob-breadout-stat">
-              <span class="mob-breadout-val pos" id="mobBreadthUp">—</span>
-              <span class="mob-breadout-label">Up</span>
-            </div>
-            <div class="mob-breadout-stat">
-              <span class="mob-breadout-val pos" id="mobBreadthPct">—</span>
-              <span class="mob-breadout-label">Breadth</span>
-            </div>
-            <div class="mob-breadout-stat">
-              <span class="mob-breadout-val pos" id="mobBreadthLeaders">—</span>
-              <span class="mob-breadout-label">Leaders</span>
-            </div>
-          </div>
-          <div class="mob-event-name-row">
-            <span class="mob-event-name-text" id="mobEventName">—</span>
-            <span class="mob-event-confirm" id="mobEventConfirm"></span>
-          </div>
-          <div class="mob-event-commentary" id="mobEventCommentary">—</div>
-          <div class="mob-event-meta" id="mobEventMeta">—</div>
-        </div>
-
-        <div class="mob-regime-card">
-          <div class="mob-regime-card-header">
-            <span class="mob-regime-card-title">Market Regime</span>
-            <span class="mob-regime-card-sub" id="mobRegimeSub">Current phase</span>
-          </div>
-
-          <!-- Animated spectrum bar -->
-          <div class="mob-spectrum-wrap">
-
-            <!-- Labels above -->
-            <div class="mob-spectrum-labels">
-              <span class="mob-spec-label-off">RISK-OFF</span>
-              <span class="mob-spec-label-mid">TRANSITION</span>
-              <span class="mob-spec-label-on">RISK-ON</span>
-            </div>
-
-            <!-- The bar itself -->
-            <div class="mob-spectrum-track">
-              <div class="mob-spectrum-gradient"></div>
-
-              <!-- Directional momentum arrows — rendered by JS -->
-              <div class="mob-spectrum-arrows" id="mobSpecArrows"></div>
-
-              <!-- Moving dot indicator -->
-              <div class="mob-spectrum-dot" id="mobSpecDot"></div>
-            </div>
-
-            <!-- Descriptors below -->
-            <div class="mob-spectrum-descs">
-              <span>Defensive<br>leadership</span>
-              <span>Rotation /<br>caution</span>
-              <span>Broad<br>participation</span>
-            </div>
-
-            <!-- Momentum label -->
-            <div class="mob-spectrum-momentum" id="mobSpecMomentum"></div>
-
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="mob-screen" id="mobScreenDetail">
-      <div class="mob-det-header">
-        <div class="mob-back-btn" id="mobBackBtn">‹ TABLE</div>
-        <div class="mob-big-element" id="mobBigEl">
-          <div class="mob-big-el-num" id="mobBigNum">—</div>
-          <div class="mob-big-el-sym" id="mobBigSym">—</div>
-          <div class="mob-big-el-name" id="mobBigName">—</div>
-          <div class="mob-big-el-weight" id="mobBigWeight">—</div>
-        </div>
-        <div class="mob-det-company-name" id="mobDetName">—</div>
-        <div class="mob-det-ceo" id="mobDetCat">—</div>
-        <div class="mob-det-badge-row">
-          <span class="mob-mbadge" id="mobDetBadge">—</span>
-          <span class="mob-mbadge mob-mbadge-cohort" id="mobDetCohort">—</span>
-        </div>
-      </div>
-
-      <div class="mob-el-data-table">
-        <div class="mob-el-data-row">
-          <div class="mob-el-data-label">Price</div>
-          <div class="mob-el-data-val" id="mobDetPrice">—</div>
-          <div class="mob-el-data-sub" id="mobDetChange">—</div>
-        </div>
-        <div class="mob-el-data-row">
-          <div class="mob-el-data-label">Change %</div>
-          <div class="mob-el-data-val" id="mobDetPct">—</div>
-        </div>
-        <div class="mob-el-data-row">
-          <div class="mob-el-data-label">Signal</div>
-          <div class="mob-el-data-val" id="mobDetSignal">—</div>
-        </div>
-        <div class="mob-el-data-row">
-          <div class="mob-el-data-label">Cohort</div>
-          <div class="mob-el-data-val" id="mobDetCohortVal">—</div>
-        </div>
-        <div class="mob-el-data-row">
-          <div class="mob-el-data-label">Category</div>
-          <div class="mob-el-data-sub" id="mobDetCategory">—</div>
-        </div>
-      </div>
-
-      <div class="mob-el-data-table" id="mobStatsSection">
-        <div class="mob-stats-head">Quick Stats</div>
-        <div class="mob-el-data-row">
-          <div class="mob-el-data-label">P/E Ratio</div>
-          <div class="mob-el-data-val" id="mobStatPE">—</div>
-        </div>
-        <div class="mob-el-data-row">
-          <div class="mob-el-data-label">EPS (TTM)</div>
-          <div class="mob-el-data-val" id="mobStatEPS">—</div>
-        </div>
-        <div class="mob-el-data-row">
-          <div class="mob-el-data-label">Mkt Cap</div>
-          <div class="mob-el-data-val" id="mobStatMarketCap">—</div>
-        </div>
-        <div class="mob-el-data-row">
-          <div class="mob-el-data-label">52W High</div>
-          <div class="mob-el-data-val" id="mobStat52High">—</div>
-        </div>
-        <div class="mob-el-data-row">
-          <div class="mob-el-data-label">52W Low</div>
-          <div class="mob-el-data-val" id="mobStat52Low">—</div>
-        </div>
-        <div class="mob-el-data-row">
-          <div class="mob-el-data-label">Beta</div>
-          <div class="mob-el-data-val" id="mobStatBeta">—</div>
-        </div>
-        <div class="mob-el-data-row">
-          <div class="mob-el-data-label">Revenue</div>
-          <div class="mob-el-data-val" id="mobStatRevenue">—</div>
-        </div>
-        <div class="mob-el-data-row">
-          <div class="mob-el-data-label">Div Yield</div>
-          <div class="mob-el-data-val" id="mobStatYield">—</div>
-        </div>
-      </div>
-
-      <div class="mob-det-about">
-        <div class="mob-det-about-title">About</div>
-        <div class="mob-det-about-text" id="mobDetAbout">—</div>
-      </div>
-
-      <div class="mob-signal-box" id="mobSignalBox">
-        <div class="mob-signal-title" id="mobSignalTitle">MCM Signal</div>
-        <div class="mob-signal-text" id="mobSignalText">—</div>
-      </div>
-
-      <div class="mob-det-links" id="mobDetLinks">
-        <div class="mob-det-links-title">Links</div>
-        <div class="mob-det-links-list" id="mobDetLinksList"></div>
-      </div>
-    </div>
-
-    <div class="mob-tab-bar">
-      <div class="mob-tab mob-tab-active" data-tab="table">
-        <div class="mob-tab-icon">⊞</div>
-        <div class="mob-tab-lbl">TABLE</div>
-      </div>
-      <div class="mob-tab" data-tab="events">
-        <div class="mob-tab-icon">⚡</div>
-        <div class="mob-tab-lbl">EVENTS</div>
-      </div>
-      <div class="mob-tab" data-tab="perf">
-        <div class="mob-tab-icon">▲</div>
-        <div class="mob-tab-lbl">PERF</div>
-      </div>
-      <div class="mob-tab" data-tab="play">
-        <div class="mob-tab-icon">📋</div>
-        <div class="mob-tab-lbl">PLAYBOOK</div>
-      </div>
-    </div>
-  `;
-
-  document.body.insertBefore(shell, document.body.firstChild);
-
-  // Tab bar navigation
-  shell.querySelectorAll(".mob-tab").forEach((tab) => {
-    tab.addEventListener("click", () => {
-      const t = tab.getAttribute("data-tab");
-      if (t === "table") {
-        mobShowScreen("table");
-      } else if (t === "events") {
-        window.location.href = "/events.html";
-      } else if (t === "perf") {
-        window.location.href = "/performance.html";
-      } else if (t === "play") {
-        window.location.href = "/faq.html";
-      }
-    });
-  });
-
-  // Back button
-  shell.querySelector("#mobBackBtn").addEventListener("click", () => {
-    mobShowScreen("table");
-  });
-}
-
-function mobShowScreen(name) {
-  document.querySelectorAll(".mob-screen").forEach((s) => s.classList.remove("active"));
-  const target = name === "detail" ? $("#mobScreenDetail") : $("#mobScreenTable");
-  if (target) { target.classList.add("active"); target.scrollTop = 0; }
-
-  document.querySelectorAll(".mob-tab").forEach((t) => {
-    t.classList.toggle("mob-tab-active", t.getAttribute("data-tab") === name);
-  });
-}
-
-function mobRenderTable(symbols, snap) {
-  const master = $("#mobPtMaster");
-  if (!master) return;
-
-  const grouped = {};
-  for (const s of symbols) {
-    const k = s.cohort || "other";
-    if (!grouped[k]) grouped[k] = [];
-    grouped[k].push(s);
-  }
-
-  const maxCols = Math.max(...COHORT_ORDER_MOB.map((k) => (grouped[k] || []).length));
-  const colCount = Math.min(maxCols, 8);
-
-  // Only render column headers up to the actual data width
-  let html = `<div class="mob-col-hdr mob-col-hdr-empty"></div>`;
-  for (let i = 1; i <= colCount; i++) {
-    // Check if any row actually has data in this column
-    const hasData = COHORT_ORDER_MOB.some((k) => (grouped[k] || []).length >= i);
-    if (hasData) {
-      html += `<div class="mob-col-hdr">${toRoman(i)}</div>`;
-    } else {
-      html += `<div class="mob-col-hdr" style="opacity:0;pointer-events:none;"></div>`;
-    }
-  }
-
-  let atomicNum = 1;
-
-  for (const cohortKey of COHORT_ORDER_MOB) {
-    const list = grouped[cohortKey] || [];
-    if (!list.length) continue;
-    const meta = COHORT_META[cohortKey] || { label: cohortKey, cls: "mob-c1", color: "#888", shortLabel: "—" };
-
-    // Split into chunks of colCount so long cohorts wrap cleanly
-    const chunks = [];
-    for (let i = 0; i < list.length; i += colCount) {
-      chunks.push(list.slice(i, i + colCount));
-    }
-
-    chunks.forEach((chunk, chunkIdx) => {
-      // Row label — only show on first chunk of each cohort
-      if (chunkIdx === 0) {
-        html += `
-          <div class="mob-row-label" style="position:relative;">
-            <span class="mob-row-label-name" style="color:${meta.color}">${meta.shortLabel}</span>
-            <div style="position:absolute;right:0;top:0;bottom:0;width:2px;background:${meta.color};opacity:.35;border-radius:1px;"></div>
-          </div>
-        `;
-      } else {
-        // Continuation row — empty label cell with color bar
-        html += `
-          <div class="mob-row-label" style="position:relative;">
-            <div style="position:absolute;right:0;top:0;bottom:0;width:2px;background:${meta.color};opacity:.35;border-radius:1px;"></div>
-          </div>
-        `;
-      }
-
-      chunk.forEach((s) => {
-        const d = snap?.[s.symbol] || {};
-        const last = Number(d.last);
-        const prev = Number(d?.previous_close) || Number(d?.meta?.previous_close) || NaN;
-        const hasData = Number.isFinite(last) && Number.isFinite(prev) && prev !== 0;
-        const chg = hasData ? last - prev : NaN;
-        const isPos = hasData && chg >= 0;
-        const isNeg = hasData && chg < 0;
-        const signal = getTileSignal(d);
-        const signalCls = signal === "confirmed" ? "mob-el-confirmed" : signal === "down" ? "mob-el-down" : signal === "forming" ? "mob-el-forming" : "";
-        const dirCls = isPos ? "pos" : isNeg ? "neg" : "";
-
-        html += `
-          <div class="mob-el ${meta.cls} ${signalCls}" data-symbol="${s.symbol}" data-atomic="${atomicNum}">
-            <div class="mob-el-num">${atomicNum}</div>
-            <div class="mob-el-price ${dirCls}">${hasData ? mobFmtPrice(last) : "—"}</div>
-            <div class="mob-el-sym">${s.symbol}</div>
-            <div class="mob-el-change ${dirCls}">${hasData ? mobFmtChg(chg) : "—"}</div>
-          </div>
-        `;
-        atomicNum++;
-      });
-
-      // Fill remainder of row with empty cells
-      const emptyCells = colCount - chunk.length;
-      for (let e = 0; e < emptyCells; e++) {
-        html += `<div class="mob-el mob-el-empty"></div>`;
-      }
-    });
-  }
-
-  master.style.gridTemplateColumns = `52px repeat(${colCount}, minmax(0, 1fr))`;
-  master.style.maxWidth = "100%";
-  master.innerHTML = html;
-
-  master.querySelectorAll(".mob-el[data-symbol]").forEach((el) => {
-    el.addEventListener("click", () => mobOpenDetail(el.getAttribute("data-symbol"), snap));
-  });
-}
-
-function mobRenderSequence(symbols, snap) {
-  const bar = $("#mobSeqBar");
-  const labels = $("#mobSeqLabels");
-  if (!bar || !labels) return;
-
-  // All 5 cohorts in recovery sequence order
-  const steps = [
-    { key: "liquidity_leader", label: "Liquidity", short: "LIQ" },
-    { key: "reflex_bounce",    label: "Reflexive", short: "REF" },
-    { key: "macro_sensitive",  label: "Macro",     short: "MAC" },
-    { key: "cyclical",         label: "Cyclical",  short: "CYC" },
-    { key: "defensive",        label: "Defensive", short: "DEF" },
-  ];
-
-  // Compute breadth for each cohort
-  const cohortBreadth = {};
-  for (const step of steps) {
-    const members = symbols.filter(s => s.cohort === step.key);
-    let up = 0, total = 0;
-    for (const s of members) {
-      const d = snap?.[s.symbol];
-      if (!d) continue;
-      const last = Number(d.last);
-      const prev = Number(d?.previous_close) || Number(d?.meta?.previous_close) || NaN;
-      if (!Number.isFinite(last) || !Number.isFinite(prev) || prev === 0) continue;
-      total++;
-      if (last >= prev) up++;
-    }
-    cohortBreadth[step.key] = total > 0 ? up / total : 0;
-  }
-
-  // Determine state of each step:
-  // done   = >50% of cohort members are up
-  // active = first cohort that hasn't reached 50% (or highest confirmed)
-  // wait   = everything after active
-  let foundActive = false;
-  const states = steps.map((step) => {
-    const breadth = cohortBreadth[step.key];
-    if (breadth >= 0.5) return "done";
-    if (!foundActive) {
-      foundActive = true;
-      return "active";
-    }
-    return "wait";
-  });
-
-  // If all cohorts are done (broad risk-on), keep last as active
-  if (!foundActive) states[states.length - 1] = "active";
-
-  // Store active cohort key for focus signal
-  const activeIdx = states.indexOf("active");
-  window.__mobActiveSequenceStep = activeIdx >= 0 ? steps[activeIdx].key : null;
-
-  // Build bar HTML
-  let barHtml = "";
-  let labelHtml = "";
-
-  steps.forEach((step, i) => {
-    const state = states[i];
-    const breadthPct = Math.round(cohortBreadth[step.key] * 100);
-
-    barHtml += `<div class="mob-seq-step"><div class="mob-seq-fill mob-seq-${state}"></div></div>`;
-    if (i < steps.length - 1) {
-      barHtml += `<div class="mob-seq-arrow mob-seq-${state}"></div>`;
-    }
-    labelHtml += `
-      <div class="mob-seq-label mob-seq-${state}">
-        <div class="mob-seq-label-name">${step.short}</div>
-        <div class="mob-seq-label-pct">${breadthPct}%</div>
-      </div>`;
-  });
-
-  bar.innerHTML = barHtml;
-  labels.innerHTML = labelHtml;
-}
-
-function mobRenderTicker(symbols, snap) {
-  const inner = $("#mobTickerInner");
-  if (!inner) return;
-
-  const items = symbols.map((s) => {
-    const d = snap?.[s.symbol] || {};
-    const last = Number(d.last);
-    const prev = Number(d?.previous_close) || Number(d?.meta?.previous_close) || NaN;
-    if (!Number.isFinite(last)) return null;
-    const chg = Number.isFinite(prev) && prev !== 0 ? (last - prev) / prev : NaN;
-    const isPos = Number.isFinite(chg) && chg >= 0;
-    const pctStr = Number.isFinite(chg) ? `${isPos ? "+" : ""}${(chg * 100).toFixed(2)}%` : "—";
-    return `<div class="mob-t-item"><span class="mob-t-sym">${s.symbol}</span> ${mobFmtPrice(last)} <span class="${isPos ? "mob-t-pos" : "mob-t-neg"}">${pctStr}</span></div>`;
-  }).filter(Boolean);
-
-  const markup = items.join("");
-  inner.innerHTML = markup + markup;
-}
-
-function mobRenderEventCard(evt, snap, symbols) {
-  if (!evt) return;
-
-  const pillEl = $("#mobRegimePill");
-  const pillText = $("#mobRegimePillText");
-  if (pillText) pillText.textContent = evt.label || "—";
-  if (pillEl) {
-    pillEl.className = "mob-regime-pill";
-    if (evt.toneClass === "evt-green") pillEl.classList.add("mob-pill-green");
-    else if (evt.toneClass === "evt-red") pillEl.classList.add("mob-pill-red");
-    else if (evt.toneClass === "evt-orange" || evt.toneClass === "evt-yellow") pillEl.classList.add("mob-pill-yellow");
-    else pillEl.classList.add("mob-pill-blue");
-  }
-
-  const el = (id) => $(id);
-  if (el("#mobEventLabel")) el("#mobEventLabel").textContent = evt.label || "—";
-  if (el("#mobEventAsof")) el("#mobEventAsof").textContent = snap?._meta?.asof_local || "—";
-  if (el("#mobEventName")) el("#mobEventName").textContent = evt.label || "—";
-
-  // Confirm indicator
-  if (el("#mobEventConfirm")) {
-    el("#mobEventConfirm").textContent = "MCM active ›";
-    el("#mobEventConfirm").style.color = evt.toneClass === "evt-green" ? "#22c55e" : evt.toneClass === "evt-red" ? "#ef4444" : "#eab308";
-  }
-
-  // Commentary — the descriptive text explaining what's happening
-  if (el("#mobEventCommentary")) {
-    el("#mobEventCommentary").textContent = evt.sub || "—";
-  }
-
-  // Meta — breadth and leader stats
-  if (el("#mobEventMeta")) {
-    el("#mobEventMeta").textContent = evt.meta || "—";
-  }
-
-  // Breadth
-  const LEADERS = ["MSFT", "AAPL", "NVDA", "V"];
-  let up = 0, total = 0, leadersUp = 0;
-  for (const s of symbols) {
-    const d = snap?.[s.symbol];
-    if (!d) continue;
-    const last = Number(d.last);
-    const prev = Number(d?.previous_close) || Number(d?.meta?.previous_close) || NaN;
-    if (!Number.isFinite(last) || !Number.isFinite(prev) || prev === 0) continue;
-    total++;
-    if (last >= prev) up++;
-  }
-  for (const sym of LEADERS) {
-    const d = snap?.[sym];
-    if (!d) continue;
-    const last = Number(d.last);
-    const prev = Number(d?.previous_close) || Number(d?.meta?.previous_close) || NaN;
-    if (Number.isFinite(last) && Number.isFinite(prev) && prev !== 0 && last >= prev) leadersUp++;
-  }
-  const pct = total ? Math.round((up / total) * 100) : 0;
-
-  const upEl = $("#mobBreadthUp");
-  const pctEl = $("#mobBreadthPct");
-  const leadEl = $("#mobBreadthLeaders");
-  if (upEl) { upEl.textContent = total ? `${up}/${total}` : "—"; upEl.className = `mob-breadout-val ${up >= total / 2 ? "pos" : "neg"}`; }
-  if (pctEl) { pctEl.textContent = total ? `${pct}%` : "—"; pctEl.className = `mob-breadout-val ${pct >= 50 ? "pos" : "neg"}`; }
-  if (leadEl) { leadEl.textContent = `${leadersUp}/${LEADERS.length}`; leadEl.className = `mob-breadout-val ${leadersUp >= 2 ? "pos" : "neg"}`; }
-
-  // Animated spectrum bar
-  updateSpectrumBar(evt, snap, symbols);
-}
-
-function mobOpenDetail(sym, snap) {
-  const currentSnap = snap || window.__mobSnap;
-  const symbolsBySym = window.__mobSymbolsBySym || {};
-  const s = symbolsBySym[sym];
-  const d = currentSnap?.[sym] || {};
-
-  const last = Number(d.last);
-  const prev = Number(d?.previous_close) || Number(d?.meta?.previous_close) || NaN;
-  const hasData = Number.isFinite(last) && Number.isFinite(prev) && prev !== 0;
-  const chg = hasData ? last - prev : NaN;
-  const pct = hasData ? chg / prev : NaN;
-  const isPos = hasData && chg >= 0;
-  const signal = getTileSignal(d);
-  const cohortKey = s?.cohort || "other";
-  const meta = COHORT_META[cohortKey] || { label: cohortKey, color: "#888", cls: "mob-c1" };
-
-  const tileEl = document.querySelector(`.mob-el[data-symbol="${sym}"]`);
-  const atomicNum = tileEl?.getAttribute("data-atomic") || "—";
-
-  const bigEl = $("#mobBigEl");
-  if (bigEl) {
-    bigEl.className = `mob-big-element ${meta.cls}`;
-    bigEl.style.borderColor = signal === "confirmed" ? "rgba(34,197,94,.5)" : signal === "down" ? "rgba(239,68,68,.4)" : "rgba(234,179,8,.45)";
-  }
-
-  const setText = (id, val) => { const el = $(`#${id}`); if (el) el.textContent = val; };
-
-  setText("mobBigNum", atomicNum);
-  setText("mobBigSym", sym);
-  const symEl = $("#mobBigSym");
-  if (symEl) symEl.style.color = signal === "confirmed" ? "#86efac" : signal === "down" ? "#fca5a5" : "#fde68a";
-  setText("mobBigName", (s?.name || sym).split(" ")[0]);
-  setText("mobBigWeight", hasData ? mobFmtPrice(last) : "—");
-  setText("mobDetName", s?.name || sym);
-  setText("mobDetCat", s?.category || "—");
-
-  const badge = $("#mobDetBadge");
-  if (badge) {
-    badge.className = `mob-mbadge mob-mbadge-${signal}`;
-    badge.textContent = signal === "confirmed" ? "Confirmed" : signal === "down" ? "No Confirm" : "Setup Forming";
-  }
-
-  const cohortBadge = $("#mobDetCohort");
-  if (cohortBadge) {
-    cohortBadge.textContent = meta.label;
-    cohortBadge.style.color = meta.color;
-    cohortBadge.style.borderColor = meta.color + "44";
-    cohortBadge.style.background = meta.color + "18";
-  }
-
-  setText("mobDetPrice", hasData ? `$${mobFmtPrice(last)}` : "—");
-
-  const chgEl = $("#mobDetChange");
-  if (chgEl) { chgEl.textContent = hasData ? mobFmtChg(chg) : "—"; chgEl.className = `mob-el-data-sub ${isPos ? "pos" : "neg"}`; }
-
-  const pctEl = $("#mobDetPct");
-  if (pctEl) { pctEl.textContent = hasData ? mobFmtPct(pct) : "—"; pctEl.className = `mob-el-data-val ${isPos ? "pos" : "neg"}`; }
-
-  const cohortValEl = $("#mobDetCohortVal");
-  if (cohortValEl) { cohortValEl.textContent = meta.label; cohortValEl.style.color = meta.color; }
-
-  setText("mobDetCategory", s?.category || "—");
-
-  const signalEl = $("#mobDetSignal");
-  if (signalEl) {
-    signalEl.textContent = signal === "confirmed" ? "⚡ RTH Confirmed" : signal === "down" ? "⚠ No Confirmation" : "◎ Setup Forming";
-    signalEl.className = `mob-el-data-val mob-signal-${signal}`;
-  }
-
-  // Placeholder while async loads
-  setText("mobDetAbout", "Loading…");
-  updateStatRow("mobStatPE",        "…");
-  updateStatRow("mobStatEPS",       "…");
-  updateStatRow("mobStatMarketCap", "…");
-  updateStatRow("mobStat52High",    "…");
-  updateStatRow("mobStat52Low",     "…");
-  updateStatRow("mobStatBeta",      "…");
-  updateStatRow("mobStatRevenue",   "…");
-  updateStatRow("mobStatYield",     "…");
-
-  const sigBox = $("#mobSignalBox");
-  if (sigBox) sigBox.className = `mob-signal-box mob-signal-box-${signal}`;
-  setText("mobSignalTitle",
-    signal === "confirmed" ? "⚡ MCM Signal — Confirmed" :
-    signal === "down"      ? "⚠ MCM Signal — No Confirmation" :
-                             "◎ MCM Signal — Setup Forming"
-  );
-  const sigText = hasData
-    ? `${sym} is ${chg >= 0 ? "up" : "down"} ${mobFmtPct(pct)}${
-        signal === "confirmed" ? " with RTH reversal confirmed. " + meta.label + " cohort participation confirmed."
-      : signal === "down"     ? ". No reversal confirmation yet. Watch for reclaim of intraday baseline."
-      :                         ". Setup forming — reversal not yet confirmed in RTH session."}`
-    : `No price data available for ${sym} yet.`;
-  setText("mobSignalText", sigText);
-
-  // Populate links
-  const linksList = $("#mobDetLinksList");
-  if (linksList) {
-    const links = Array.isArray(s?.links) && s.links.length
-      ? s.links
-      : buildDefaultLinks(sym);
-    linksList.innerHTML = links.map((l) =>
-      `<a class="mob-det-link-item" href="${l.href}" target="_blank" rel="noreferrer">${l.label}</a>`
-    ).join("");
-  }
-
-  // After async stats load, add website link if available
-  // (handled in the async block below)
-
-  // Show detail screen immediately
-  mobShowScreen("detail");
-
-  // Async: fetch fundamentals (description comes from TwelveData profile)
-  Promise.allSettled([
-    getFundamentals(sym),
-  ]).then(([statsResult]) => {
-
-    // Fundamentals + description
-    if (statsResult.status === "fulfilled") {
-      const f = statsResult.value;
-
-      // Use TwelveData description — no OpenAI needed
-      if (f.description) {
-        setText("mobDetAbout", f.description);
-      } else {
-        setText("mobDetAbout", s?.blurb || s?.category || "—");
-      }
-
-      // Add website link if available from TwelveData
-      if (f.website) {
-        const linksList = $("#mobDetLinksList");
-        if (linksList) {
-          const existingLinks = Array.isArray(s?.links) && s.links.length
-            ? s.links
-            : buildDefaultLinks(sym);
-          // Prepend website link if not already present
-          const hasWebsite = existingLinks.some(l => l.href === f.website);
-          const allLinks = hasWebsite ? existingLinks : [
-            { label: `${s?.name || sym} Website`, href: f.website },
-            ...existingLinks,
-          ];
-          linksList.innerHTML = allLinks.map((l) =>
-            `<a class="mob-det-link-item" href="${l.href}" target="_blank" rel="noreferrer">${l.label}</a>`
-          ).join("");
+        .port-stat-val {
+          font-size: 26px;
         }
       }
+    </style>
+  </head>
 
-      const fmtLarge = (n) => {
-        if (!Number.isFinite(n)) return "—";
-        if (n >= 1e12) return `$${(n / 1e12).toFixed(2)}T`;
-        if (n >= 1e9)  return `$${(n / 1e9).toFixed(2)}B`;
-        if (n >= 1e6)  return `$${(n / 1e6).toFixed(2)}M`;
-        return `$${n.toLocaleString()}`;
+  <body>
+    <div class="port-shell">
+
+      <!-- HEADER -->
+      <div class="port-header">
+        <div class="port-header-row1">
+          <span class="port-brand">RISKXLABS / MCM</span>
+          <div class="port-status-pill">
+            <div class="port-status-dot"></div>
+            SIMULATED
+          </div>
+        </div>
+        <div class="port-header-title">PORTFOLIO<br>SIMULATOR</div>
+        <div class="port-status-row">
+          <span style="font-family:var(--p-mono);font-size:9px;color:var(--p-text3);">DOW 30 ONLY</span>
+          <span style="color:var(--p-border2);">·</span>
+          <span style="font-family:var(--p-mono);font-size:9px;color:var(--p-text3);">3 PORTFOLIOS MAX</span>
+          <span style="color:var(--p-border2);">·</span>
+          <span style="font-family:var(--p-mono);font-size:9px;color:var(--p-text3);">$10,000 SEED</span>
+        </div>
+      </div>
+
+      <div class="port-main">
+
+        <!-- COMMAND BAR -->
+        <div class="port-command-bar">
+          <div class="port-command-header">
+            <span class="port-section-label">Command Center</span>
+            <span class="port-command-meta">
+              <span id="selectedUserName">—</span>
+              <span style="color:var(--p-border2);margin:0 4px;">·</span>
+              <span id="selectedPortfolioName">No portfolio</span>
+            </span>
+          </div>
+
+          <div class="port-selects">
+            <div class="port-field">
+              <span class="port-field-label">User</span>
+              <select id="userSelect" class="port-select">
+                <option value="">Select user…</option>
+              </select>
+            </div>
+            <div class="port-field">
+              <span class="port-field-label">Portfolio</span>
+              <select id="portfolioSelect" class="port-select">
+                <option value="">Select portfolio…</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="port-field" style="margin-bottom:0;">
+            <span class="port-field-label">New Portfolio</span>
+            <div class="port-new-portfolio" style="margin-top:4px;">
+              <input
+                id="newPortfolioName"
+                class="port-input"
+                type="text"
+                placeholder="e.g. Risk-Off Basket"
+              />
+              <button class="port-btn" id="createPortfolioBtn" type="button">+ Create</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUMMARY CARDS -->
+        <div class="port-summary">
+          <div class="port-stat-card">
+            <span class="port-stat-label">Starting Cash</span>
+            <span class="port-stat-val" id="summaryStartingCash">$—</span>
+          </div>
+          <div class="port-stat-card">
+            <span class="port-stat-label">Est. Cash</span>
+            <span class="port-stat-val" id="summaryCash">$—</span>
+          </div>
+          <div class="port-stat-card">
+            <span class="port-stat-label">Executed</span>
+            <span class="port-stat-val pos" id="summaryExecutedCount">—</span>
+          </div>
+          <div class="port-stat-card">
+            <span class="port-stat-label">Open Orders</span>
+            <span class="port-stat-val" id="summaryOpenCount">—</span>
+          </div>
+        </div>
+
+        <!-- ORDER ENTRY -->
+        <div class="port-section" id="orderSection">
+          <div class="port-section-head" id="orderSectionToggle">
+            <div class="port-section-head-left">
+              <span class="port-section-title">Order Entry</span>
+              <span class="port-section-sub">Dow 30 only · Cohort auto-assigned</span>
+            </div>
+            <span class="port-section-toggle">▾</span>
+          </div>
+
+          <div class="port-section-body">
+
+            <!-- Symbol -->
+            <div class="port-field">
+              <span class="port-field-label">Symbol</span>
+              <input
+                id="symbolInput"
+                class="port-input"
+                type="text"
+                placeholder="AAPL"
+                maxlength="8"
+                style="text-transform:uppercase;font-size:16px;font-weight:700;letter-spacing:.1em;"
+              />
+              <div class="port-symbol-resolved" id="symbolResolvedText">
+                Enter a Dow 30 ticker
+              </div>
+            </div>
+
+            <!-- BUY / SELL toggle -->
+            <div class="port-field">
+              <span class="port-field-label">Side</span>
+              <div class="port-side-toggle" style="margin-top:4px;">
+                <button class="port-side-btn active-buy" id="sideBtn-buy" type="button">BUY</button>
+                <button class="port-side-btn" id="sideBtn-sell" type="button">SELL</button>
+              </div>
+              <!-- Hidden select for JS compatibility -->
+              <select id="sideSelect" class="port-hidden">
+                <option value="buy" selected>Buy</option>
+                <option value="sell">Sell</option>
+              </select>
+            </div>
+
+            <!-- Qty + Order Type -->
+            <div class="port-two-col">
+              <div class="port-field">
+                <span class="port-field-label">Quantity</span>
+                <input id="quantityInput" class="port-input" type="number" min="1" step="1" placeholder="10" />
+              </div>
+              <div class="port-field">
+                <span class="port-field-label">Order Type</span>
+                <select id="orderTypeSelect" class="port-select">
+                  <option value="market">Market</option>
+                  <option value="limit">Limit</option>
+                  <option value="stop">Stop</option>
+                  <option value="stop_limit">Stop Limit</option>
+                  <option value="trailing_stop">Trailing Stop</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Prices -->
+            <div class="port-three-col">
+              <div class="port-field">
+                <span class="port-field-label">Current $</span>
+                <input id="currentPriceInput" class="port-input" type="number" min="0" step="0.01" placeholder="—" />
+              </div>
+              <div class="port-field">
+                <span class="port-field-label">Limit $</span>
+                <input id="limitPriceInput" class="port-input" type="number" min="0" step="0.01" placeholder="Optional" />
+              </div>
+              <div class="port-field">
+                <span class="port-field-label">Stop $</span>
+                <input id="stopPriceInput" class="port-input" type="number" min="0" step="0.01" placeholder="Optional" />
+              </div>
+            </div>
+
+            <!-- Trailing + TIF -->
+            <div class="port-two-col">
+              <div class="port-field">
+                <span class="port-field-label">Trailing %</span>
+                <input id="trailingPercentInput" class="port-input" type="number" min="0" step="0.01" placeholder="e.g. 5" />
+              </div>
+              <div class="port-field">
+                <span class="port-field-label">Time in Force</span>
+                <select id="timeInForceSelect" class="port-select">
+                  <option value="none">None</option>
+                  <option value="gtc">GTC</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Event Rationale chips -->
+            <div class="port-field">
+              <span class="port-field-label">Event Rationale</span>
+              <div class="port-rationale-chips" style="margin-top:6px;" id="rationaleChips">
+                <div class="port-rationale-chip" data-val="">None</div>
+                <div class="port-rationale-chip" data-val="Panic / Liquidation">🟥 Panic</div>
+                <div class="port-rationale-chip" data-val="Risk-Off Rotation">🟦 Risk-Off</div>
+                <div class="port-rationale-chip" data-val="Macro Repricing">🟧 Macro</div>
+                <div class="port-rationale-chip" data-val="Recovery / Mean Reversion">🟩 Recovery</div>
+                <div class="port-rationale-chip" data-val="Earnings-Driven">🟨 Earnings</div>
+                <div class="port-rationale-chip" data-val="Other">Other</div>
+              </div>
+              <!-- Hidden select for JS compatibility -->
+              <select id="eventRationaleSelect" class="port-hidden">
+                <option value="">None</option>
+                <option value="Panic / Liquidation">Panic / Liquidation</option>
+                <option value="Risk-Off Rotation">Risk-Off Rotation</option>
+                <option value="Macro Repricing">Macro Repricing</option>
+                <option value="Recovery / Mean Reversion">Recovery / Mean Reversion</option>
+                <option value="Earnings-Driven">Earnings-Driven</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <!-- Notes -->
+            <div class="port-field">
+              <span class="port-field-label">Notes</span>
+              <textarea
+                id="orderNotesInput"
+                class="port-textarea"
+                rows="2"
+                placeholder="Optional trade rationale…"
+                style="resize:none;margin-top:4px;"
+              ></textarea>
+            </div>
+
+            <!-- Submit -->
+            <button class="port-btn port-btn-submit" id="submitOrderBtn" type="button">
+              ⚡ SUBMIT SIMULATED ORDER
+            </button>
+
+          </div>
+        </div>
+
+        <!-- ORDER HISTORY -->
+        <div class="port-orders">
+          <div class="port-orders-head">
+            <span class="port-section-label">Order History</span>
+            <span class="port-command-meta" id="orderCount">—</span>
+          </div>
+          <div id="ordersListMobile">
+            <div class="port-empty">Select a user and portfolio to load orders.</div>
+          </div>
+        </div>
+
+      </div><!-- /port-main -->
+
+      <!-- TAB BAR -->
+      <div class="port-tab-bar">
+        <a class="port-tab" href="/">
+          <div class="port-tab-icon">⊞</div>
+          <div class="port-tab-lbl">TABLE</div>
+        </a>
+        <a class="port-tab" href="/events.html">
+          <div class="port-tab-icon">⚡</div>
+          <div class="port-tab-lbl">EVENTS</div>
+        </a>
+        <a class="port-tab active" href="/portfolio.html">
+          <div class="port-tab-icon">💼</div>
+          <div class="port-tab-lbl">PORTFOLIO</div>
+        </a>
+        <a class="port-tab" href="/faq.html">
+          <div class="port-tab-icon">📋</div>
+          <div class="port-tab-lbl">PLAYBOOK</div>
+        </a>
+      </div>
+
+      <!-- TOAST -->
+      <div class="port-toast" id="portToast"></div>
+
+    </div><!-- /port-shell -->
+
+    <script type="module">
+      // ── IMPORT EXISTING PORTFOLIO JS ──
+      // We re-use all the existing logic but patch the renderOrders
+      // function to output mobile cards instead of a table.
+
+      import { getSnapshot } from "/src/api.js";
+
+      const $ = (sel) => document.querySelector(sel);
+
+      const DOW30 = {
+        MMM:{name:"3M",cohort:"Cyclicals / Industrials"},
+        AXP:{name:"American Express",cohort:"Macro-Sensitive"},
+        AMGN:{name:"Amgen",cohort:"Defensive / Yield"},
+        AAPL:{name:"Apple",cohort:"Liquidity Leaders"},
+        BA:{name:"Boeing",cohort:"Cyclicals / Industrials"},
+        CAT:{name:"Caterpillar",cohort:"Cyclicals / Industrials"},
+        CVX:{name:"Chevron",cohort:"Macro-Sensitive"},
+        CSCO:{name:"Cisco",cohort:"Defensive / Yield"},
+        KO:{name:"Coca-Cola",cohort:"Defensive / Yield"},
+        DIS:{name:"Disney",cohort:"Reflex / Growth"},
+        GS:{name:"Goldman Sachs",cohort:"Macro-Sensitive"},
+        HD:{name:"Home Depot",cohort:"Macro-Sensitive"},
+        HON:{name:"Honeywell",cohort:"Cyclicals / Industrials"},
+        IBM:{name:"IBM",cohort:"Liquidity Leaders"},
+        JNJ:{name:"Johnson & Johnson",cohort:"Defensive / Yield"},
+        JPM:{name:"JPMorgan Chase",cohort:"Macro-Sensitive"},
+        MCD:{name:"McDonald's",cohort:"Defensive / Yield"},
+        MRK:{name:"Merck",cohort:"Defensive / Yield"},
+        MSFT:{name:"Microsoft",cohort:"Liquidity Leaders"},
+        NKE:{name:"Nike",cohort:"Reflex / Growth"},
+        PG:{name:"Procter & Gamble",cohort:"Defensive / Yield"},
+        CRM:{name:"Salesforce",cohort:"Reflex / Growth"},
+        SHW:{name:"Sherwin-Williams",cohort:"Cyclicals / Industrials"},
+        TRV:{name:"Travelers",cohort:"Defensive / Yield"},
+        UNH:{name:"UnitedHealth",cohort:"Defensive / Yield"},
+        VZ:{name:"Verizon",cohort:"Defensive / Yield"},
+        V:{name:"Visa",cohort:"Liquidity Leaders"},
+        WMT:{name:"Walmart",cohort:"Defensive / Yield"},
+        NVDA:{name:"NVIDIA",cohort:"Liquidity Leaders"},
+        AMZN:{name:"Amazon",cohort:"Reflex / Growth"},
       };
 
-      const fmtVal = (n, prefix = "", suffix = "") =>
-        Number.isFinite(n) ? `${prefix}${n.toFixed(2)}${suffix}` : "—";
+      const state = {
+        users:[],portfolios:[],orders:[],
+        selectedUserId:null,selectedUserName:"",
+        selectedPortfolioId:null,selectedPortfolioName:"",
+        selectedPortfolio:null,quoteRequestId:0,
+        currentSide:"buy",currentRationale:""
+      };
 
-      updateStatRow("mobStatPE",        fmtVal(f.pe));
-      updateStatRow("mobStatEPS",       fmtVal(f.eps, "$"));
-      updateStatRow("mobStatMarketCap", fmtLarge(f.market_cap));
-      updateStatRow("mobStat52High",    fmtVal(f.week_52_high, "$"));
-      updateStatRow("mobStat52Low",     fmtVal(f.week_52_low,  "$"));
-      updateStatRow("mobStatBeta",      fmtVal(f.beta));
-      updateStatRow("mobStatRevenue",   fmtLarge(f.revenue));
-      updateStatRow("mobStatYield",     Number.isFinite(f.dividend_yield)
-        ? fmtVal(f.dividend_yield * 100, "", "%") : "—");
-    } else {
-      setText("mobDetAbout", s?.blurb || s?.category || "—");
-    }
-  });
-}
+      /* ── HELPERS ── */
+      function fmtMoney(n){const x=Number(n);if(!Number.isFinite(x))return"—";return x.toLocaleString(undefined,{style:"currency",currency:"USD",minimumFractionDigits:2,maximumFractionDigits:2});}
+      function fmtQty(n){const x=Number(n);if(!Number.isFinite(x))return"—";return x.toLocaleString(undefined,{minimumFractionDigits:x%1===0?0:2,maximumFractionDigits:2});}
+      function safeText(v){return v===null||v===undefined||v===""?"—":String(v);}
+      function capitalizeWords(s){return String(s||"").replaceAll("_"," ").replace(/\b\w/g,m=>m.toUpperCase());}
+      function selectedUser(){return state.users.find(u=>Number(u.id)===Number(state.selectedUserId))||null;}
+      function selectedPortfolio(){return state.portfolios.find(p=>Number(p.id)===Number(state.selectedPortfolioId))||null;}
 
-function updateStatRow(id, val) {
-  const el = $(`#${id}`);
-  if (el) el.textContent = val;
-}
+      function showToast(msg, isError=false){
+        const t=$("#portToast");
+        if(!t)return;
+        t.textContent=msg;
+        t.className="port-toast"+(isError?" error":"");
+        requestAnimationFrame(()=>{
+          t.classList.add("show");
+          setTimeout(()=>t.classList.remove("show"),2800);
+        });
+      }
 
-function updateSpectrumBar(evt, snap, symbols) {
-  const dot = $("#mobSpecDot");
-  const arrows = $("#mobSpecArrows");
-  const momentum = $("#mobSpecMomentum");
-  const sub = $("#mobRegimeSub");
-  if (!dot || !arrows) return;
+      function resetSummary(){
+        $("#summaryStartingCash").textContent="$—";
+        $("#summaryCash").textContent="$—";
+        $("#summaryExecutedCount").textContent="—";
+        $("#summaryOpenCount").textContent="—";
+      }
 
-  // Dot position as % across the bar
-  const positions = {
-    panic:    8,
-    policy:   20,
-    macro:    38,
-    earnings: 50,
-    recovery: 82,
-  };
-  const pos = positions[evt?.code] ?? 50;
+      function setHeaderMeta(){
+        $("#selectedUserName").textContent=state.selectedUserName||"—";
+        $("#selectedPortfolioName").textContent=state.selectedPortfolioName||"No portfolio";
+        const metaUser = $("#metaUser");
+        const metaPort = $("#metaPortfolio");
+        if(metaUser) metaUser.textContent=state.selectedUserName||"—";
+        if(metaPort) metaPort.textContent=state.selectedPortfolioName||"—";
+      }
 
-  // Set dot position with smooth transition
-  dot.style.left = `calc(${pos}% - 9px)`;
+      /* ── API ── */
+      async function getJson(url,options={}){
+        const resp=await fetch(url,options);
+        const data=await resp.json().catch(()=>({}));
+        if(!resp.ok)throw new Error(data?.error||`Request failed: ${resp.status}`);
+        return data;
+      }
 
-  // Determine dot color based on position
-  if (pos <= 30) {
-    dot.className = "mob-spectrum-dot mob-spec-dot-off";
-  } else if (pos <= 60) {
-    dot.className = "mob-spectrum-dot mob-spec-dot-trans";
-  } else {
-    dot.className = "mob-spectrum-dot mob-spec-dot-on";
-  }
+      async function loadUsers(){
+        const data=await getJson("/api/users");
+        state.users=Array.isArray(data?.items)?data.items:[];
+        renderUsers();
+      }
 
-  // Compute momentum direction from breadth
-  const LEADERS = ["MSFT", "AAPL", "NVDA", "V"];
-  let up = 0, total = 0, leadersUp = 0;
-  for (const s of symbols) {
-    const d = snap?.[s.symbol];
-    if (!d) continue;
-    const last = Number(d.last);
-    const prev = Number(d?.previous_close) || Number(d?.meta?.previous_close) || NaN;
-    if (!Number.isFinite(last) || !Number.isFinite(prev) || prev === 0) continue;
-    total++;
-    if (last >= prev) up++;
-  }
-  for (const sym of LEADERS) {
-    const d = snap?.[sym];
-    if (!d) continue;
-    const last = Number(d.last);
-    const prev = Number(d?.previous_close) || Number(d?.meta?.previous_close) || NaN;
-    if (Number.isFinite(last) && Number.isFinite(prev) && prev !== 0 && last >= prev) leadersUp++;
-  }
+      async function loadPortfolios(userId){
+        const data=await getJson(`/api/portfolios?user_id=${encodeURIComponent(userId)}`);
+        state.portfolios=Array.isArray(data?.items)?data.items:[];
+        renderPortfolios();
+      }
 
-  const breadthPct = total ? up / total : 0;
-  const leadersStrong = leadersUp >= 2;
+      async function createPortfolio(userId,name){
+        return getJson("/api/portfolios",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({user_id:Number(userId),name})});
+      }
 
-  // Determine momentum: risk-on, risk-off, or neutral
-  let direction = "neutral";
-  if (breadthPct >= 0.60 && leadersStrong) direction = "risk-on";
-  else if (breadthPct <= 0.35 && leadersUp <= 1) direction = "risk-off";
+      async function loadOrders(portfolioId){
+        const data=await getJson(`/api/orders?portfolio_id=${encodeURIComponent(portfolioId)}`);
+        state.orders=Array.isArray(data?.items)?data.items:[];
+        state.selectedPortfolio=data?.portfolio||selectedPortfolio()||null;
+        renderOrders();
+        renderSummary();
+      }
 
-  // Build animated arrows
-  const arrowCount = 5;
-  let arrowHtml = "";
-  let momentumText = "";
+      async function submitOrder(payload){
+        return getJson("/api/orders",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+      }
 
-  if (direction === "risk-on") {
-    for (let i = 0; i < arrowCount; i++) {
-      arrowHtml += `<span class="mob-spec-arrow mob-spec-arrow-on" style="animation-delay:${i * 0.22}s">›</span>`;
-    }
-    momentumText = "▲ Momentum building toward Risk-On";
-    if (momentum) { momentum.textContent = momentumText; momentum.className = "mob-spectrum-momentum mob-spec-mom-on"; }
-  } else if (direction === "risk-off") {
-    for (let i = arrowCount - 1; i >= 0; i--) {
-      arrowHtml += `<span class="mob-spec-arrow mob-spec-arrow-off" style="animation-delay:${(arrowCount - 1 - i) * 0.22}s">‹</span>`;
-    }
-    momentumText = "▼ Momentum shifting toward Risk-Off";
-    if (momentum) { momentum.textContent = momentumText; momentum.className = "mob-spectrum-momentum mob-spec-mom-off"; }
-  } else {
-    arrowHtml = "";
-    momentumText = "◆ Mixed signals — Transition zone";
-    if (momentum) { momentum.textContent = momentumText; momentum.className = "mob-spectrum-momentum mob-spec-mom-neu"; }
-  }
+      /* ── RENDER ── */
+      function renderUsers(){
+        const sel=$("#userSelect");
+        if(!sel)return;
+        const current=String(state.selectedUserId||"");
+        sel.innerHTML=`<option value="">Select user…</option>${state.users.map(u=>`<option value="${u.id}"${String(u.id)===current?" selected":""}>${u.name}</option>`).join("")}`;
+      }
 
-  arrows.innerHTML = arrowHtml;
+      function renderPortfolios(){
+        const sel=$("#portfolioSelect");
+        if(!sel)return;
+        const current=String(state.selectedPortfolioId||"");
+        sel.innerHTML=`<option value="">Select portfolio…</option>${state.portfolios.map(p=>`<option value="${p.id}"${String(p.id)===current?" selected":""}>${p.name}</option>`).join("")}`;
+      }
 
-  // Update sub label
-  if (sub) {
-    const labels = {
-      panic:    "Panic / Liquidation — defensive leadership",
-      policy:   "Risk-Off — rotation into safety",
-      macro:    "Macro repricing — transition",
-      earnings: "Normal / Earnings-driven — transition",
-      recovery: "Recovery — broad participation building",
-    };
-    sub.textContent = labels[evt?.code] || "Current phase";
-  }
+      function renderOrders(){
+        const list=$("#ordersListMobile");
+        const countEl=$("#orderCount");
+        if(!list)return;
 
-  // Focus signal — highlight the cohort to watch right now
-  updateCohortFocus(evt);
-}
+        if(!state.selectedPortfolioId){
+          list.innerHTML=`<div class="port-empty">Select a user and portfolio to load orders.</div>`;
+          if(countEl)countEl.textContent="—";
+          return;
+        }
 
-function updateCohortFocus(evt) {
-  // Map event code to the cohort that should be in focus
-  // Based on MCM recovery sequence theory:
-  // panic    → watch Defensive (safe haven leadership)
-  // policy   → watch Liquidity (first movers on relief)
-  // macro    → watch Macro-Sensitive (financials, housing)
-  // earnings → watch Reflexive (growth names, high beta)
-  // recovery → watch Cyclical (full risk-on confirmation)
-  const focusMap = {
-    panic:    { cohort: "defensive", cls: "mob-row-focus-def", label: "SAFE HAVEN" },
-    policy:   { cohort: "liquidity_leader", cls: "mob-row-focus-liq", label: "WATCH" },
-    macro:    { cohort: "macro_sensitive",  cls: "mob-row-focus-mac", label: "WATCH" },
-    earnings: { cohort: "reflex_bounce",    cls: "mob-row-focus-ref", label: "WATCH" },
-    recovery: { cohort: "cyclical",         cls: "mob-row-focus-cyc", label: "WATCH" },
-  };
+        if(!state.orders.length){
+          list.innerHTML=`<div class="port-empty">No orders yet — submit your first trade above.</div>`;
+          if(countEl)countEl.textContent="0 orders";
+          return;
+        }
 
-  const focus = focusMap[evt?.code] || null;
+        if(countEl)countEl.textContent=`${state.orders.length} order${state.orders.length!==1?"s":""}`;
 
-  // Clear all existing focus classes
-  const allFocusClasses = [
-    "mob-row-focus",
-    "mob-row-focus-liq",
-    "mob-row-focus-ref",
-    "mob-row-focus-mac",
-    "mob-row-focus-cyc",
-    "mob-row-focus-def",
-  ];
+        list.innerHTML=state.orders.map(o=>{
+          const executed=o.executed_price!=null?fmtMoney(o.executed_price):"—";
+          const statusCls=o.status==="executed"?"executed":"open";
+          const time=o.executed_at||o.created_at||"";
+          const timeStr=time?new Date(time).toLocaleString([],{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}):"—";
+          const event=o.event_rationale?`<div class="port-order-event">${o.event_rationale}</div>`:"";
 
-  document.querySelectorAll(".mob-row-label").forEach((el) => {
-    allFocusClasses.forEach((cls) => el.classList.remove(cls));
-    // Remove any focus badge
-    el.querySelector(".mob-row-focus-badge")?.remove();
-    el.querySelector(".mob-row-focus-badge-right")?.remove();
-  });
+          return `
+            <div class="port-order-card ${statusCls}">
+              <div class="port-order-sym">${safeText(o.symbol)}</div>
+              <div class="port-order-details">
+                <div class="port-order-meta">${capitalizeWords(o.side)} · ${fmtQty(o.quantity)} shares · ${capitalizeWords(o.order_type)}</div>
+                <div class="port-order-cohort">${safeText(o.cohort)} · ${timeStr}</div>
+                ${event}
+              </div>
+              <div class="port-order-right">
+                <div class="port-order-price">${executed}</div>
+                <div class="port-order-status ${statusCls}">${capitalizeWords(o.status)}</div>
+              </div>
+            </div>
+          `;
+        }).join("");
+      }
 
-  if (!focus) return;
+      function renderSummary(){
+        if(!state.selectedPortfolio&&!selectedPortfolio()){resetSummary();return;}
+        const portfolio=state.selectedPortfolio||selectedPortfolio();
+        const startingCash=Number(portfolio?.starting_cash||10000);
+        let estimatedCash=startingCash,executedCount=0,openCount=0;
+        for(const o of state.orders){
+          if(o.status==="executed"){
+            executedCount++;
+            const px=Number(o.executed_price),qty=Number(o.quantity);
+            if(Number.isFinite(px)&&Number.isFinite(qty)){
+              if(o.side==="buy")estimatedCash-=qty*px;
+              if(o.side==="sell")estimatedCash+=qty*px;
+            }
+          }else if(o.status==="open"){openCount++;}
+        }
+        $("#summaryStartingCash").textContent=fmtMoney(startingCash);
+        const cashEl=$("#summaryCash");
+        cashEl.textContent=fmtMoney(estimatedCash);
+        cashEl.className="port-stat-val"+(estimatedCash>=startingCash?" pos":" neg");
+        $("#summaryExecutedCount").textContent=String(executedCount);
+        $("#summaryOpenCount").textContent=String(openCount);
+      }
 
-  // Find row labels matching the focus cohort and apply focus
-  // Row labels are adjacent to their cohort tiles — find by position in grid
-  const master = $("#mobPtMaster");
-  if (!master) return;
+      /* ── SYMBOL + QUOTE ── */
+      async function autofillLivePrice(sym){
+        const priceInput=$("#currentPriceInput");
+        if(!priceInput)return;
+        const requestId=++state.quoteRequestId;
+        try{
+          const snap=await getSnapshot([sym]);
+          if(requestId!==state.quoteRequestId)return;
+          const last=Number(snap?.[sym]?.last);
+          if(Number.isFinite(last)&&last>0)priceInput.value=last.toFixed(2);
+        }catch{}
+      }
 
-  // Get all row labels and find which ones correspond to the focus cohort
-  // We identify by checking the next sibling tile's data-symbol cohort
-  const rowLabels = master.querySelectorAll(".mob-row-label");
-  rowLabels.forEach((label) => {
-    // Find the first tile sibling after this row label
-    let sibling = label.nextElementSibling;
-    while (sibling && sibling.classList.contains("mob-el-empty")) {
-      sibling = sibling.nextElementSibling;
-    }
-    if (!sibling) return;
+      async function resolveSymbolDisplay(){
+        const input=$("#symbolInput");
+        const out=$("#symbolResolvedText");
+        if(!input||!out)return;
+        const sym=String(input.value||"").trim().toUpperCase();
+        input.value=sym;
+        if(!sym){out.textContent="Enter a Dow 30 ticker";return;}
+        const found=DOW30[sym];
+        if(!found){out.textContent="Not in Dow 30 universe";out.style.color="var(--p-red)";out.style.borderColor="rgba(239,68,68,.2)";return;}
+        out.textContent=`${found.name}  ·  ${found.cohort}`;
+        out.style.color="var(--p-cyan)";
+        out.style.borderColor="rgba(34,211,238,.2)";
+        await autofillLivePrice(sym);
+      }
 
-    const sym = sibling.getAttribute("data-symbol");
-    if (!sym) return;
+      /* ── EVENTS ── */
+      async function onUserChange(){
+        const userId=Number($("#userSelect")?.value||0);
+        state.selectedUserId=userId||null;
+        state.selectedPortfolioId=null;state.selectedPortfolio=null;
+        state.orders=[];state.portfolios=[];
+        const user=selectedUser();
+        state.selectedUserName=user?.name||"";
+        state.selectedPortfolioName="";
+        setHeaderMeta();renderPortfolios();renderOrders();resetSummary();
+        if(!state.selectedUserId)return;
+        try{await loadPortfolios(state.selectedUserId);}catch(err){showToast(err.message,true);}
+      }
 
-    const symbolsBySym = window.__mobSymbolsBySym || {};
-    const s = symbolsBySym[sym];
-    if (!s) return;
+      async function onPortfolioChange(){
+        const portfolioId=Number($("#portfolioSelect")?.value||0);
+        state.selectedPortfolioId=portfolioId||null;
+        const portfolio=selectedPortfolio();
+        state.selectedPortfolioName=portfolio?.name||"";
+        state.selectedPortfolio=portfolio||null;
+        setHeaderMeta();renderOrders();renderSummary();
+        if(!state.selectedPortfolioId)return;
+        try{
+          await loadOrders(state.selectedPortfolioId);
+          state.selectedPortfolioName=selectedPortfolio()?.name||state.selectedPortfolioName;
+          setHeaderMeta();
+        }catch(err){showToast(err.message,true);}
+      }
 
-    if (s.cohort === focus.cohort) {
-      label.classList.add("mob-row-focus", focus.cls);
+      async function onCreatePortfolio(){
+        const input=$("#newPortfolioName");
+        const name=String(input?.value||"").trim();
+        if(!state.selectedUserId){showToast("Select a user first.",true);return;}
+        if(!name){showToast("Enter a portfolio name.",true);return;}
+        try{
+          await createPortfolio(state.selectedUserId,name);
+          input.value="";
+          await loadPortfolios(state.selectedUserId);
+          showToast("Portfolio created!");
+        }catch(err){showToast(err.message,true);}
+      }
 
-      // Badge removed — on backlog for better execution
-    }
-  });
-}
+      function buildOrderPayload(){
+        if(!state.selectedPortfolioId)throw new Error("Select a portfolio first.");
+        const symbol=String($("#symbolInput")?.value||"").trim().toUpperCase();
+        const side=state.currentSide;
+        const quantity=Number($("#quantityInput")?.value);
+        const orderType=String($("#orderTypeSelect")?.value||"market").trim();
+        const timeInForce=String($("#timeInForceSelect")?.value||"none").trim();
+        const currentPrice=Number($("#currentPriceInput")?.value);
+        const limitPriceRaw=$("#limitPriceInput")?.value;
+        const stopPriceRaw=$("#stopPriceInput")?.value;
+        const trailingPercentRaw=$("#trailingPercentInput")?.value;
+        const eventRationale=state.currentRationale;
+        const notes=String($("#orderNotesInput")?.value||"").trim();
+        if(!DOW30[symbol])throw new Error("Symbol must be a Dow 30 ticker.");
+        if(!Number.isFinite(quantity)||quantity<=0)throw new Error("Quantity must be > 0.");
+        if(!Number.isFinite(currentPrice)||currentPrice<=0)throw new Error("Current Price must be > 0.");
+        const payload={portfolio_id:Number(state.selectedPortfolioId),symbol,side,quantity,order_type:orderType,time_in_force:timeInForce,event_rationale:eventRationale||null,notes:notes||null,current_price:currentPrice};
+        if(limitPriceRaw!=="")payload.limit_price=Number(limitPriceRaw);
+        if(stopPriceRaw!=="")payload.stop_price=Number(stopPriceRaw);
+        if(trailingPercentRaw!=="")payload.trailing_percent=Number(trailingPercentRaw);
+        return payload;
+      }
 
-function refreshMobileView(symbols, snap, evt) {
-  window.__mobSnap = snap;
-  mobRenderTable(symbols, snap);
-  mobRenderSequence(symbols, snap);   // sets window.__mobActiveSequenceStep
-  mobRenderTicker(symbols, snap);
-  mobRenderEventCard(evt, snap, symbols);
-  updateSpectrumBar(evt, snap, symbols); // uses __mobActiveSequenceStep for focus
-}
+      async function onSubmitOrder(){
+        try{
+          const payload=buildOrderPayload();
+          await submitOrder(payload);
+          await loadOrders(state.selectedPortfolioId);
+          clearOrderForm();
+          showToast("Order submitted!");
+          // Scroll to orders
+          $("#ordersListMobile")?.scrollIntoView({behavior:"smooth",block:"start"});
+        }catch(err){showToast(err.message,true);}
+      }
 
-/* ============================================================
-   BOOT
-   ============================================================ */
+      function clearOrderForm(){
+        $("#quantityInput").value="";
+        $("#currentPriceInput").value="";
+        $("#limitPriceInput").value="";
+        $("#stopPriceInput").value="";
+        $("#trailingPercentInput").value="";
+        $("#orderNotesInput").value="";
+        // Reset rationale
+        document.querySelectorAll(".port-rationale-chip").forEach(c=>c.classList.remove("selected"));
+        document.querySelector('.port-rationale-chip[data-val=""]')?.classList.add("selected");
+        state.currentRationale="";
+        $("#eventRationaleSelect").value="";
+      }
 
-async function boot() {
-  const cfg = await import("./config.js");
-  const SYMBOLS = cfg.DOW30 || cfg.SYMBOLS || cfg.symbols || [];
-  const UI_REFRESH_MS = Number(cfg.UI_REFRESH_MS) || 60_000;
+      /* ── WIRE UI ── */
+      function wireEvents(){
+        $("#userSelect")?.addEventListener("change",onUserChange);
+        $("#portfolioSelect")?.addEventListener("change",onPortfolioChange);
+        $("#createPortfolioBtn")?.addEventListener("click",onCreatePortfolio);
+        $("#submitOrderBtn")?.addEventListener("click",onSubmitOrder);
+        $("#symbolInput")?.addEventListener("input",resolveSymbolDisplay);
+        $("#symbolInput")?.addEventListener("blur",resolveSymbolDisplay);
 
-  const symbols = SYMBOLS.map((s) => ({
-    symbol: String(s.symbol || "").toUpperCase(),
-    name: s.name || s.company || "",
-    category: s.category || s.sector || "",
-    cohort: s.cohort || s.cohort_key || s.group,
-    blurb: s.blurb || s.description || "",
-    links: s.links || null,
-  })).filter((s) => s.symbol);
+        // BUY/SELL toggle
+        $("#sideBtn-buy")?.addEventListener("click",()=>{
+          state.currentSide="buy";
+          $("#sideSelect").value="buy";
+          $("#sideBtn-buy").className="port-side-btn active-buy";
+          $("#sideBtn-sell").className="port-side-btn";
+        });
 
-  const symbolsBySym = Object.fromEntries(symbols.map((s) => [s.symbol, s]));
+        $("#sideBtn-sell")?.addEventListener("click",()=>{
+          state.currentSide="sell";
+          $("#sideSelect").value="sell";
+          $("#sideBtn-sell").className="port-side-btn active-sell";
+          $("#sideBtn-buy").className="port-side-btn";
+        });
 
-  // Store for mobile detail screen access
-  window.__mobSymbolsBySym = symbolsBySym;
+        // Rationale chips
+        document.querySelectorAll(".port-rationale-chip").forEach(chip=>{
+          chip.addEventListener("click",()=>{
+            document.querySelectorAll(".port-rationale-chip").forEach(c=>c.classList.remove("selected"));
+            chip.classList.add("selected");
+            state.currentRationale=chip.getAttribute("data-val")||"";
+            $("#eventRationaleSelect").value=state.currentRationale;
+          });
+        });
 
-  // Desktop table
-  renderCohorts($("#periodicRow"), symbols);
-  wireCardClose();
+        // Select None by default
+        document.querySelector('.port-rationale-chip[data-val=""]')?.classList.add("selected");
 
-  // Always inject mobile shell — it is now the primary UI
-  injectMobileShell(symbols);
+        // Collapsible order section
+        $("#orderSectionToggle")?.addEventListener("click",()=>{
+          $("#orderSection")?.classList.toggle("collapsed");
+        });
+      }
 
-  try {
-    const active = await getActiveEvent();
-    $("#homeEventLine").textContent = active?.title ? `Active event: ${active.title}` : "Active event: —";
-  } catch {
-    $("#homeEventLine").textContent = "Active event: —";
-  }
+      async function boot(){
+        wireEvents();
+        setHeaderMeta();
+        resetSummary();
+        resolveSymbolDisplay();
+        try{await loadUsers();}catch(err){showToast(`Unable to load users: ${err.message}`,true);}
+      }
 
-  async function refresh() {
-    let snap = null;
-
-    try {
-      snap = await getSnapshot(symbols.map((s) => s.symbol));
-    } catch {
-      setRegimeBanner({ title: "MARKET REGIME: —", sub: "Unable to load snapshot.", meta: "—", toneClass: "evt-neutral" });
-      return;
-    }
-
-    setAsOfLabels(snap);
-    await refreshDjiaQuote();
-    await refreshMarketNews();
-
-    const evt = detectEvent(symbols, snap);
-
-    setRegimeBanner({
-      title: `${evt.badge} EVENT: ${evt.label}`,
-      sub: evt.sub,
-      meta: evt.meta,
-      toneClass: evt.toneClass,
-    });
-
-    await refreshTiles(symbols, snap);
-
-    // Always refresh mobile view — it is the primary UI
-    if (!$("#mobView")) injectMobileShell(symbols);
-    refreshMobileView(symbols, snap, evt);
-
-    document.querySelectorAll(".pTile").forEach((btn) => {
-      if (btn.dataset.wired === "1") return;
-      btn.dataset.wired = "1";
-      btn.addEventListener("click", async () => {
-        const sym = btn.getAttribute("data-symbol");
-        await populateCompanyCard(symbolsBySym, snap, sym);
-      });
-    });
-  }
-
-  await refresh();
-  setInterval(() => refresh().catch(() => {}), UI_REFRESH_MS);
-}
-
-boot();
+      boot();
+    </script>
+  </body>
+</html>
