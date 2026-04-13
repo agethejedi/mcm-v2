@@ -185,7 +185,7 @@
 }
 
 .mob-row-label-name {
-  font-size: 21px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: .06em;
   text-transform: uppercase;
@@ -947,7 +947,7 @@
   }
 
   .mob-row-label-name {
-    font-size: clamp(7px, .7vw, 10px);
+    font-size: clamp(9px, 1vw, 13px);
     letter-spacing: .08em;
   }
 
@@ -1331,6 +1331,7 @@
 /* Default — all row labels slightly dimmed */
 .mob-row-label-name {
   opacity: .55;
+  font-size: 10px !important;
   transition: opacity .4s ease, text-shadow .4s ease, transform .4s ease;
 }
 
@@ -1391,19 +1392,62 @@
   box-shadow: 2px 0 8px currentColor;
 }
 
-/* Focus badge — small "WATCH" tag next to the label */
-.mob-row-focus-badge {
+/* Focus badge — positioned to the right of the row */
+.mob-row-focus-badge-right {
   position: absolute;
-  top: 2px;
-  right: 8px;
-  font-size: 6px;
-  letter-spacing: .08em;
+  right: -52px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 20;
+  pointer-events: none;
+}
+
+.mob-row-focus-badge-right span {
+  display: block;
+  font-size: 8px;
+  letter-spacing: .1em;
   font-weight: 700;
   text-transform: uppercase;
-  padding: 1px 4px;
-  border-radius: 3px;
+  padding: 3px 7px;
+  border-radius: 4px;
   background: rgba(255,255,255,.08);
-  border: 1px solid rgba(255,255,255,.15);
-  color: rgba(255,255,255,.7);
+  border: 1px solid rgba(255,255,255,.2);
+  color: rgba(255,255,255,.9);
   white-space: nowrap;
+  animation: mob-badge-pulse 2s ease-in-out infinite;
+}
+
+.mob-row-label.mob-row-focus-liq .mob-row-focus-badge-right span {
+  background: rgba(96,165,250,.15);
+  border-color: rgba(96,165,250,.4);
+  color: #93c5fd;
+}
+
+.mob-row-label.mob-row-focus-ref .mob-row-focus-badge-right span {
+  background: rgba(192,132,252,.15);
+  border-color: rgba(192,132,252,.4);
+  color: #d8b4fe;
+}
+
+.mob-row-label.mob-row-focus-mac .mob-row-focus-badge-right span {
+  background: rgba(52,211,153,.15);
+  border-color: rgba(52,211,153,.4);
+  color: #6ee7b7;
+}
+
+.mob-row-label.mob-row-focus-cyc .mob-row-focus-badge-right span {
+  background: rgba(251,146,60,.15);
+  border-color: rgba(251,146,60,.4);
+  color: #fdba74;
+}
+
+.mob-row-label.mob-row-focus-def .mob-row-focus-badge-right span {
+  background: rgba(248,113,113,.15);
+  border-color: rgba(248,113,113,.4);
+  color: #fca5a5;
+}
+
+@keyframes mob-badge-pulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: .7; transform: scale(1.05); }
 }
